@@ -164,7 +164,8 @@ AC_DEFUN([_AX_CHECK_GL_COMPILE_CV],
 # Link the example program
 AC_DEFUN([_AX_CHECK_GL_LINK],
 [dnl
- _AX_CHECK_GL_SAVE_FLAGS([[CFLAGS],[LIBS]])
+ dnl RL local change 2026-09-07: Arch ax_check_gl_m4.patch, preserve LDFLAGS.
+ _AX_CHECK_GL_SAVE_FLAGS([[CFLAGS],[LIBS],[LDFLAGS]])
  AC_LINK_IFELSE([_AX_CHECK_GL_PROGRAM],
                 [ax_check_gl_link_opengl="yes"],
                 [ax_check_gl_link_opengl="no"])

@@ -1,0 +1,28 @@
+From 2884c1fffa0e04cbc32807578afe27ab33bd4100 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bastien=20Roucari=C3=A8s?=
+ <bastien.roucaries+debian@gmail.com>
+Date: Wed, 26 Jul 2017 23:39:52 +0200
+Subject: [PATCH] Do not forget to save LDFLAGS
+
+ax_check_gl forget to save LDFLAGS
+
+Thanks to  Jerome Benoit <calculus@rezozer.net>
+
+debian-bug; https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=848363
+---
+ m4/ax_check_gl.m4 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/m4/ax_check_gl.m4 b/m4/ax_check_gl.m4
+index cc4c426c..a22747e1 100644
+--- a/m4/ax_check_gl.m4
++++ b/m4/ax_check_gl.m4
+@@ -164,7 +164,7 @@ AC_DEFUN([_AX_CHECK_GL_COMPILE_CV],
+ # Link the example program
+ AC_DEFUN([_AX_CHECK_GL_LINK],
+ [dnl
+- _AX_CHECK_GL_SAVE_FLAGS([[CFLAGS],[LIBS]])
++ _AX_CHECK_GL_SAVE_FLAGS([[CFLAGS],[LIBS],[LDFLAGS]])
+  AC_LINK_IFELSE([_AX_CHECK_GL_PROGRAM],
+                 [ax_check_gl_link_opengl="yes"],
+                 [ax_check_gl_link_opengl="no"])

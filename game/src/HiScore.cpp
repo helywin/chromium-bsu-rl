@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: isolate current and legacy score paths.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -167,7 +168,8 @@ const char *HiScore::getFileName()
 	}
 	else
 	{
-		const char *homeDir = getenv("HOME");
+		const char *homeDir = getenv("CHROMIUM_BSU_RL_STATE_DIR");
+		if(!homeDir) homeDir = getenv("HOME");
 		if(!homeDir)
 			homeDir = "./";
 		sprintf(configFilename, "%s/%s", homeDir, CONFIG_SCORE_FILE);
@@ -184,7 +186,8 @@ const char *HiScore::getFileName()
 const char *HiScore::getOldFileName()
 {
 	static char	configFilename[256];
-	const char *homeDir = getenv("HOME");
+	const char *homeDir = getenv("CHROMIUM_BSU_RL_STATE_DIR");
+	if(!homeDir) homeDir = getenv("HOME");
 	if(!homeDir)
 		homeDir = "./";
 	sprintf(configFilename, "%s/.chromium-score" CONFIG_EXT, homeDir);

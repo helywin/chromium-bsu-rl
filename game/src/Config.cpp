@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: isolate preferences using CHROMIUM_BSU_RL_STATE_DIR.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -147,7 +148,8 @@ void Config::destroy()
 const char* Config::getFileName()
 {
 	static char	configFilename[256];
-	const char *homeDir = getenv("HOME");
+	const char *homeDir = getenv("CHROMIUM_BSU_RL_STATE_DIR");
+	if(!homeDir) homeDir = getenv("HOME");
 
 	if(!homeDir)
 		homeDir = "./";
@@ -160,7 +162,8 @@ const char* Config::getFileName()
 const char* Config::getOldFileName()
 {
 	static char	configFilename[256];
-	const char *homeDir = getenv("HOME");
+	const char *homeDir = getenv("CHROMIUM_BSU_RL_STATE_DIR");
+	if(!homeDir) homeDir = getenv("HOME");
 
 	if(!homeDir)
 		homeDir = "./";
@@ -265,7 +268,8 @@ bool Config::saveFile()
 	bool retVal;
 	char	configFilename[256];
 	FILE	*file;
-	const char *homeDir = getenv("HOME");
+	const char *homeDir = getenv("CHROMIUM_BSU_RL_STATE_DIR");
+	if(!homeDir) homeDir = getenv("HOME");
 
 	if(!homeDir)
 		homeDir = "./";
