@@ -179,6 +179,7 @@ void EnemyAmmo::addAmmo(int type, float pos[3], float vel[3])
 			vel[2]*game->speedAdj, };
 		newAmmo = getNewAmmo();
 		newAmmo->init(pos, v, ammoDamage[type]);
+		newAmmo->snapshotId = ++nextSnapshotId;
 		newAmmo->back = ammoRoot[type];
 		newAmmo->next = ammoRoot[type]->next;
 		if(ammoRoot[type]->next)
@@ -324,6 +325,5 @@ void EnemyAmmo::drawGL()
 		glEnd();
 	}
 }
-
 
 

@@ -36,6 +36,8 @@ public:
 private:
 	// RL local change 2026-09-07: fixed-step GUI control, independent of SDL keys.
 	bool rlTick(int dx, int dy, bool fire);
+	void updateDrawableViewport();
+	bool rlRender();
 	int  rlDirectionX = 0, rlDirectionY = 0;
 	void activation(bool shown, bool mouse, bool input, bool gain);
 	void keyDown(SDL_Event *event);

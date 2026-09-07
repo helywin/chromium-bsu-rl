@@ -152,6 +152,27 @@ MainSDL::~MainSDL()
 
 //----------------------------------------------------------
 #include "rl/SnapshotBridge.h"
+// RL local change 2026-09-07: actual drawable pixels can differ from the
+// requested window size (Wayland scaling/tiling). Keep the game projection
+// unchanged and fit its original aspect ratio inside the drawable.
+void MainSDL::updateDrawableViewport()
+{
+#if SDL_VERSION_ATLEAST(2,0,0)
+	int width = 0, height = 0;
+	SDL_GL_GetDrawableSize(window, &width, &height);
+	if(width <= 0 || height <= 0) return;
+	Config *config = Config::instance();
+	int viewWidth = width, viewHeight = height;
+	const double aspect = config->screenA();
+	if(width > height * aspect)
+		viewWidth = static_cast<int>(height * aspect);
+	else
+		viewHeight = static_cast<int>(width / aspect);
+	glViewport((width - viewWidth) / 2, (height - viewHeight) / 2,
+		viewWidth, viewHeight);
+#endif
+}
+
 bool MainSDL::rlTick(int dx, int dy, bool fireRequested)
 {
 	SDL_Event event;
@@ -170,14 +191,25 @@ bool MainSDL::rlTick(int dx, int dy, bool fireRequested)
 	game->hero->moveEvent(static_cast<int>(key_speed_x), static_cast<int>(key_speed_y));
 	game->hero->holdFire(fireRequested);
 	game->speedAdj = 1.0f;
-	// Upstream drawGL also mutates gameplay. Exactly once per tick, never at idle.
-	game->mainGL->drawGL();
+	game->mainGL->advanceSimulationTick();
+	++game->frame;
+	return !SnapshotBridge::automaticRendering() || rlRender();
+}
+
+bool MainSDL::rlRender()
+{
+	SDL_Event event;
+	while(SDL_PollEvent(&event)) if(event.type == SDL_QUIT) return false;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_ShowWindow(window);
+#endif
+	updateDrawableViewport();
+	Global::getInstance()->mainGL->renderGameFrame();
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_GL_SwapWindow(window);
 #else
 	SDL_GL_SwapBuffers();
 #endif
-	++game->frame;
 	return true;
 }
 
@@ -208,15 +240,28 @@ bool MainSDL::run()
 		if(SnapshotBridge::pump(key_speed_x, key_speed_y,
 			[](int dx, int dy, bool fire, void *self) {
 				return static_cast<MainSDL *>(self)->rlTick(dx, dy, fire);
-			}, this)) break;
+			}, this, [](void *self) {
+				return static_cast<MainSDL *>(self)->rlRender();
+			})) break;
 		if(SnapshotBridge::synchronous()) {
 			// Window close remains responsive; physical input cannot affect RL state.
-			while(SDL_PollEvent(&event)) if(event.type == SDL_QUIT) done = 1;
+			bool redraw = false;
+			while(SDL_PollEvent(&event)) {
+				if(event.type == SDL_QUIT) done = 1;
+#if SDL_VERSION_ATLEAST(2,0,0)
+				if(event.type == SDL_WINDOWEVENT &&
+				   (event.window.event == SDL_WINDOWEVENT_EXPOSED ||
+				    event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) redraw = true;
+#endif
+			}
+			if(!done && redraw && SnapshotBridge::automaticRendering())
+				if(!rlRender()) done = 1;
 			SDL_Delay(2); // Only idle protocol polling, not simulated time.
 			continue;
 		}
 
 		//-- Draw our scene...
+		updateDrawableViewport();
 		game->mainGL->drawGL();
 
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -378,6 +423,9 @@ bool MainSDL::setVideoMode()
 #define SDL_FULLSCREEN SDL_WINDOW_FULLSCREEN
 #endif
 	video_flags = SDL_OPENGL;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if(!SnapshotBridge::automaticRendering()) video_flags |= SDL_WINDOW_HIDDEN;
+#endif
 	if(config->fullScreen())
 		video_flags |= SDL_FULLSCREEN;
 

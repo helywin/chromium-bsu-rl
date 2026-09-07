@@ -2,7 +2,7 @@
 
 A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
 
-**Status: typed snapshots and opt-in synchronous GUI steps available.** `GameClient(synchronous=True)` runs one first-level episode under Python control. Reset/seed, render-free accelerated simulation and trained models are not implemented. This is not an official Chromium B.S.U. release.
+**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. Still display/GL-dependent, not truly headless. Reset/seed, Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
 
 ## 项目目标
 
@@ -11,7 +11,7 @@ A standalone project for adapting Chromium B.S.U. into a deterministic, accelera
 - 保留键盘移动模型，提供明确的动作、观察、奖励和终止契约。
 - 可独立构建和使用，不依赖课程仓库、个人目录或Isaac Lab。
 
-详见 [接口与加速设计方案](docs/design.md)。上述训练能力均待实现。
+详见 [接口与加速设计方案](docs/design.md)。完整训练环境与策略仍待实现，已实现接口见下文。
 
 ## 构建与运行（Linux）
 
@@ -57,7 +57,7 @@ IDE能识别`Snapshot/PlayerState/EnemyState`字段。每个客户端使用单�
 RUN_CHROMIUM_GUI_TESTS=1 <venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-## Python同步动作（GUI原型）
+## Python同步动作、单独绘图与敌方子弹
 
 ```bash
 <venv>/bin/python examples/watch_steps.py
@@ -73,9 +73,13 @@ with GameClient(synchronous=True) as game:
     print(result.snapshot.player.position, result.episode_tick)
 ```
 
-每个内部tick采用原版50fps参考尺度（`speedAdj=1`，标称0.02秒），执行完整更新和绘图。没有step就不推进；连续相同方向视为保持按下，IDLE为释放并衰减，不是瞬间清零。每条指令最多50tick，到死亡或本关完成立即停下。
+每个内部tick采用原版50fps参考尺度（`speedAdj=1`，标称0.02秒），执行完整逻辑更新；绘图可以独立关闭。没有step就不推进；连续相同方向视为保持按下，IDLE为释放并衰减，不是瞬间清零。每条指令最多50tick，到死亡或本关完成立即停下。
 
-这是**仅第一关的同步GUI原型**，不是完整Gym环境。仍需要显示服务/GL；绘图与逻辑尚未拆开，无额外render命令，无确定性seed/reset、奖励、子弹快照或整局任务。重新创建客户端才能开新一局。见[同步协议与边界](docs/synchronous-step.md)。
+这是**仅第一关的同步原型**，不是完整Gym环境。仍需要显示服务/GL，无公开seed/reset、奖励或整局任务。重新创建客户端才能开新一局。
+
+使用 `GameClient(synchronous=True, render_each_step=False)` 跳过逐步绘图，调用 `game.render()` 查看当前状态。敌方子弹位于 `state.enemy_bullets`，每颗含稳定ID、类型、位置、每步位移、贴图半尺寸和原始伤害。可以运行 `<venv>/bin/python examples/watch_enemy_bullets.py` 查看。**贴图尺寸不是碰撞范围，速度不是每秒单位。** 详见[当前绘图与子弹契约](docs/render-free-stepping.md)。
+
+新版绘图不再消耗游戏逻辑的随机数；行为版本为split-render-v2，快照schema为2。9条对照轨迹、9563个快照绘图开关一致，9项测试通过。这里不承诺与旧版同seed轨迹一致；单次采样基准约22200tick/s（不逐步绘图），不是网络训练性能保证。
 
 ## 获取仓库
 

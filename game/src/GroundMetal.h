@@ -32,6 +32,7 @@ public:
 	~GroundMetal();
 
 	void	drawGL();
+	void	update();
 	void	setVariation(int index);
 
 	void	loadTextures();

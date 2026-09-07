@@ -215,6 +215,7 @@ void MenuGL::drawGL()
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
 	//-- Draw background
+	game->ground->update();
 	game->ground->drawGL();
 
 	//-- Update audio
@@ -1003,4 +1004,3 @@ void MenuGL::mousePress(MainToolkit::Button but, int xi, int yi)
 		}
 	}
 }
-

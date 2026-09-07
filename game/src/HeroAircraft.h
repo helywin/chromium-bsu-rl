@@ -67,6 +67,8 @@ public:
 
 	void	update();
 	void	drawGL();
+	// RL local change 2026-09-07: preserve old sprite/visibility boundary.
+	void	advanceVisibility();
 	void	reset();
 	void	newGame();
 	void	fullHealth();
@@ -104,6 +106,7 @@ private:
 
 	int		lives;
 	int		dontShow;
+	bool	showSprite = true;
 	int		superBomb;
 	float	scoreStep;
 	float	scoreTarget;

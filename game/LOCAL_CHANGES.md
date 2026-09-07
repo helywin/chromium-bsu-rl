@@ -1,5 +1,19 @@
 # Local changes
 
+## 2026-09-07 — split-render-v2 and enemy bullets
+
+- Single-level advanceSimulationTick and renderGameFrame are independent. Background, HUD, electric acceleration and super-shield particles advance in the tick path. Rendering preserves the gameplay RNG cursor using frame-indexed visual sampling; this changes RNG consumption relative to v1 and is explicitly versioned.
+- Optional render_each_step=False uses a hidden SDL/GL window and skips per-tick draw/swap. Explicit render reveals current state with no tick. This is not true headless. Default-mode expose/resize can repaint without gameplay updates.
+- Snapshot schema2 adds enemy_bullets (spawn ID, type, position, displacement/tick, sprite half-size, damage) and diagnostic rng_cursor. Pooled allocations get new IDs on reuse. No hero bullets are included.
+- Enemy bullet source values and collision caveats are in docs/render-free-stepping.md.9 native/parser/transport methods and9563 draw/skip snapshot comparisons passed; types seen in trajectories:0.
+
+## 2026-09-07 — drawable fix and initial rendering separation
+
+- Fit the original game aspect ratio into actual SDL drawable pixels before drawing. Slow-window clipping was reported fixed by the learner; no game coordinate or speed change.
+- Extract MainGL core update, hero visibility countdown and enemy retargeting into explicit methods, preserving the original combined-loop order. No render-free switch is exposed yet.
+- Add developer-only fixed-epoch before/after comparison, never loaded by the game launcher. It is not a public seed API.
+- Remaining background, HUD, particle and random-stream dependencies are tracked in docs/render-separation-audit.md; see it for validation boundaries.
+
 ## 2026-09-07 — source/build stage, no RL API yet
 
 - Apply the two documented Arch patches: floating-point keyboard accumulation and OpenGL configure flag preservation.

@@ -33,6 +33,7 @@ public:
 	enum TexNames { Base, Blip, NumGndTex };
 
 	virtual void drawGL() = 0;
+	virtual void update() = 0;
 	virtual void setVariation(int index) = 0;
 	void nextVariation();
 

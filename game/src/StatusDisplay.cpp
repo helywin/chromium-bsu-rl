@@ -140,6 +140,73 @@ void StatusDisplay::darkenGL()
 }
 
 //----------------------------------------------------------
+// RL local change 2026-09-07: all HUD animation and particle creation advance
+// exactly once per tick, even when no frame is rendered.
+void StatusDisplay::update(HeroAircraft *hero)
+{
+	if(!hero) return;
+	Config *config = Config::instance();
+	if(!(game->frame % 15)) blink = !blink;
+	ammoAlpha *= 0.96;
+	damageAlpha *= 0.94;
+	shieldAlpha *= 0.94;
+	rot += 2.0 * game->speedAdj;
+	displayEnemyWarn = enemyWarn;
+	if(hero->getLives() >= 0) enemyWarn = 0.0;
+	if( game->tipShipPast == 1 && game->gameLevel == 1)
+	{
+		game->tipShipPast++;
+		tipShipShow = 200;
+	}
+	if( game->tipSuperShield == 1 && game->gameLevel == 1)
+	{
+		game->tipSuperShield++;
+		tipSuperShow = 200;
+	}
+	if(tipShipShow > 0) --tipShipShow;
+	if(tipSuperShow > 0) --tipSuperShow;
+	float superShields = hero->getShields() > HERO_SHIELDS
+		? HERO_SHIELDS - (hero->getShields() - HERO_SHIELDS) : 0.0;
+	if(superShields)
+	{
+		float sls = superShields / HERO_SHIELDS;
+		//------ add a bit of Glitter...
+		if(config->gfxLevel() > 1 && (!game->game_pause) )
+		{
+			float p[3] = { 0.0, 0.0, hero->pos[2] };
+			float v0   = 0.01*SRAND;
+			float v[3] = { v0, 0.0, 0.0 };
+			float c3   = 1.0-sls*sls;
+			float c[4] = { 1.0, 1.0, 0.7, c3 };
+			switch(game->gameFrame%2)
+			{
+				case 0:
+					v[1] = -0.3+FRAND*0.05;
+					p[0] = hero->pos[0];
+					p[1] = hero->pos[1]-0.8;
+					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
+					v[1] = -0.25+FRAND*0.05;
+					p[0] = hero->pos[0]+0.95;
+					p[1] = hero->pos[1]+0.1;
+					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
+					p[0] = hero->pos[0]-0.95;
+					p[1] = hero->pos[1]+0.1;
+					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
+					break;
+				case 1:
+					v[1] = -0.25+FRAND*0.05;
+					p[0] = hero->pos[0]+0.95;
+					p[1] = hero->pos[1]+0.1;
+					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
+					p[0] = hero->pos[0]-0.95;
+					p[1] = hero->pos[1]+0.1;
+					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
+					break;
+			}
+		}
+	}
+}
+
 void StatusDisplay::drawGL(HeroAircraft	*hero)
 {
 	Config	*config = Config::instance();
@@ -153,10 +220,6 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 
 	if(!hero)
 		return;
-	if(!(game->frame%15) )
-		blink = !blink;
-
-	ammoAlpha *= 0.96;
 
 	float	shields = hero->getShields();
 	float	superShields = 0.0;
@@ -227,15 +290,14 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 	}
 
 	//-- draw 'enemy-got-past' Warning
-	if(enemyWarn && game->hero->getLives() >= 0)
+	if(displayEnemyWarn && game->hero->getLives() >= 0)
 	{
 		glPushMatrix();
-		glColor4f(1.0, 0.0, 0.0, enemyWarn+0.15*sin(game->gameFrame*0.7));
+		glColor4f(1.0, 0.0, 0.0, displayEnemyWarn+0.15*sin(game->gameFrame*0.7));
 		glTranslatef(0.0, -8.75, 25.0);
 		glBindTexture(GL_TEXTURE_2D, heroAmmoFlash[0]);
 		drawQuad(12.0, 3.0);
 		glPopMatrix();
-		enemyWarn = 0.0;
 	}
 
 	//-- draw AMMO
@@ -287,15 +349,11 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 	glPopMatrix();
 
 	//--draw Shields
-	damageAlpha *= 0.94;
-	shieldAlpha *= 0.94;
 	float	dc = damageAlpha*0.5;
 	float   sc = shieldAlpha * 0.5;
 	float	sl, sls, dl, dls;
 	float	szx = 0.5;
 	float	szy = 6.0;
-	static	float rot = 0;
-	rot+=2.0*game->speedAdj;
 	float	rot2;
 	rot2 = 2*((int)rot%180);
 
@@ -351,40 +409,7 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 		drawQuad(sz, sz);
 		glPopMatrix();
 
-		//------ add a bit of Glitter...
-		if(config->gfxLevel() > 1 && (!game->game_pause) )
-		{
-			float p[3] = { 0.0, 0.0, hero->pos[2] };
-			float v0   = 0.01*SRAND;
-			float v[3] = { v0, 0.0, 0.0 };
-			float c3   = 1.0-sls*sls;
-			float c[4] = { 1.0, 1.0, 0.7, c3 };
-			switch(game->gameFrame%2)
-			{
-				case 0:
-					v[1] = -0.3+FRAND*0.05;
-					p[0] = hero->pos[0];
-					p[1] = hero->pos[1]-0.8;
-					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
-					v[1] = -0.25+FRAND*0.05;
-					p[0] = hero->pos[0]+0.95;
-					p[1] = hero->pos[1]+0.1;
-					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
-					p[0] = hero->pos[0]-0.95;
-					p[1] = hero->pos[1]+0.1;
-					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
-					break;
-				case 1:
-					v[1] = -0.25+FRAND*0.05;
-					p[0] = hero->pos[0]+0.95;
-					p[1] = hero->pos[1]+0.1;
-					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
-					p[0] = hero->pos[0]-0.95;
-					p[1] = hero->pos[1]+0.1;
-					game->explosions->addGlitter(p, v, c, 0, 0.4+0.4*FRAND);
-					break;
-			}
-		}
+
 	}
 
 	//---------- Draw ammo flash
@@ -657,19 +682,8 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 		game->text->Render(_("p a u s e d"));
 		glPopMatrix();
 	}
-	if( game->tipShipPast == 1 && game->gameLevel == 1)
-	{
-		game->tipShipPast++;
-		tipShipShow = 200;
-	}
-	if( game->tipSuperShield == 1 && game->gameLevel == 1)
-	{
-		game->tipSuperShield++;
-		tipSuperShow = 200;
-	}
 	if(	tipShipShow > 0 )
 	{
-		tipShipShow--;
 		glPushMatrix();
 		glTranslatef(-16, 13.0, 0.0);
 		glScalef(0.035, 0.035, 1.0);
@@ -680,7 +694,6 @@ void StatusDisplay::drawGL(HeroAircraft	*hero)
 	}
 	if(	tipSuperShow > 0 )
 	{
-		tipSuperShow--;
 		glPushMatrix();
 		glTranslatef(-16, 13.0, 0.0);
 		glScalef(0.035, 0.035, 1.0);

@@ -20,6 +20,10 @@ public:
 	int		initGL();
 	void	drawGL();
 	void	drawGameGL();
+	// RL local change 2026-09-07: explicit gameplay update boundary.
+	void	updateGameLogic();
+	void	advanceSimulationTick();
+	void	renderGameFrame();
 	void	drawDeadGL();
 	void	drawSuccessGL();
 	void	drawTextGL(const char *string, float pulse, float scale);

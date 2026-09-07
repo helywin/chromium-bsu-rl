@@ -32,6 +32,7 @@ public:
 	~GroundSea();
 
 	void	drawGL();
+	void	update();
 	void	setVariation(int index);
 
 protected:

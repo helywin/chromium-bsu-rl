@@ -40,6 +40,9 @@ public:
 
 	void	drawGL();
 	void	clear();
+	// Const traversal does not mutate the live list or expose pooled objects.
+	const ActiveAmmo *firstForSnapshot(int type) const { return ammoRoot[type]->next; }
+	const float *spriteHalfSize(int type) const { return ammoSize[type]; }
 
 	void	loadTextures();
 	void	deleteTextures();
@@ -51,6 +54,7 @@ private:
 private:
 	ActiveAmmo	*ammoRoot[NUM_ENEMY_AMMO_TYPES];
 	ActiveAmmo	*ammoPool;
+	std::uint64_t nextSnapshotId = 0;
 	float		ammoSize[NUM_ENEMY_AMMO_TYPES][2];
 	float		ammoDamage[NUM_ENEMY_AMMO_TYPES];
 

@@ -4,6 +4,7 @@
 #include "../Global.h"
 #include "../HeroAircraft.h"
 #include "../EnemyFleet.h"
+#include "../EnemyAmmo.h"
 #include <json-c/json.h>
 #include <cerrno>
 #include <csignal>
@@ -19,6 +20,7 @@ FILE *protocol = NULL;
 std::string pending;
 bool failed = false;
 bool syncMode = false;
+bool drawEachTick = true;
 int64_t episodeTick = 0;
 int64_t lastId = 0;
 const size_t maxRequest = 8192;
@@ -59,7 +61,8 @@ json_object *snapshot(float keyboardX, float keyboardY) {
     Global *g = Global::getInstance();
     json_object *s = json_object_new_object();
     const char *modes[] = {"game", "menu", "level_over", "hero_dead"};
-    put(s, "schema_version", json_object_new_int(1));
+    put(s, "schema_version", json_object_new_int(2));
+    put(s, "rng_cursor", json_object_new_int(Global::randIndex));
     put(s, "mode", json_object_new_string(modes[g->gameMode]));
     put(s, "paused", json_object_new_boolean(g->game_pause));
     put(s, "game_frame", json_object_new_int(g->gameFrame));
@@ -90,10 +93,24 @@ json_object *snapshot(float keyboardX, float keyboardY) {
         json_object_array_add(enemies, item);
     }
     put(s, "enemies", enemies);
+    json_object *bullets = json_object_new_array();
+    for(int type = 0; type < NUM_ENEMY_AMMO_TYPES; ++type) {
+        for(const ActiveAmmo *b = g->enemyAmmo->firstForSnapshot(type); b; b = b->next) {
+            json_object *item = json_object_new_object();
+            put(item, "id", json_object_new_int64(b->snapshotId));
+            put(item, "type", json_object_new_int(type));
+            put(item, "position", vec(b->pos, 3));
+            put(item, "velocity_per_tick", vec(b->vel, 3));
+            put(item, "sprite_half_size", vec(g->enemyAmmo->spriteHalfSize(type), 2));
+            put(item, "damage", json_object_new_double(b->damage));
+            json_object_array_add(bullets, item);
+        }
+    }
+    put(s, "enemy_bullets", bullets);
     return s;
 }
 bool process(const std::string &line, float &x, float &y,
-             SnapshotBridge::TickFunction tick, void *context) {
+             SnapshotBridge::TickFunction tick, void *context, SnapshotBridge::RenderFunction render) {
     json_tokener *parser = json_tokener_new_ex(16);
     json_tokener_set_flags(parser, JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8);
     json_object *request = json_tokener_parse_ex(parser, line.c_str(), line.size());
@@ -130,15 +147,21 @@ bool process(const std::string &line, float &x, float &y,
     bool close = false;
     if(std::strcmp(cmd, "hello") == 0) {
         result = json_object_new_object();
-        put(result, "implementation", json_object_new_string("chromium-bsu-rl/sync-gui-v1"));
+        put(result, "implementation", json_object_new_string("chromium-bsu-rl/split-render-v2"));
+        put(result, "render", json_object_new_boolean(syncMode));
+        put(result, "render_free_steps", json_object_new_boolean(syncMode));
+        put(result, "enemy_bullets", json_object_new_boolean(true));
         put(result, "upstream_version", json_object_new_string("0.9.16.1"));
-        put(result, "schema_version", json_object_new_int(1));
+        put(result, "schema_version", json_object_new_int(2));
         put(result, "live_snapshot", json_object_new_boolean(true));
         put(result, "step", json_object_new_boolean(syncMode));
         put(result, "reset", json_object_new_boolean(false));
         put(result, "headless", json_object_new_boolean(false));
         put(result, "deterministic", json_object_new_boolean(false));
     } else if(std::strcmp(cmd, "snapshot") == 0) {
+        result = snapshot(x, y);
+    } else if(std::strcmp(cmd, "render") == 0 && syncMode && render) {
+        if(!render(context)) { json_object_put(request); return true; }
         result = snapshot(x, y);
     } else if(std::strcmp(cmd, "step") == 0 && syncMode && tick) {
         json_object *actionObject = NULL, *ticksObject = NULL;
@@ -191,6 +214,8 @@ bool SnapshotBridge::initialize() {
     if(!enabled || std::strcmp(enabled, "1") != 0) return true;
     const char *control = std::getenv("CHROMIUM_BSU_RL_SYNCHRONOUS");
     syncMode = control && std::strcmp(control, "1") == 0;
+    const char *drawing = std::getenv("CHROMIUM_BSU_RL_RENDER");
+    drawEachTick = !syncMode || !drawing || std::strcmp(drawing, "0") != 0;
     const char *state = std::getenv("CHROMIUM_BSU_RL_STATE_DIR");
     if(!state || !*state || std::strlen(state) >= 180) {
         std::fprintf(stderr, "Protocol mode requires an isolated short state directory.\n");
@@ -208,8 +233,9 @@ bool SnapshotBridge::initialize() {
 }
 
 bool SnapshotBridge::synchronous() { return syncMode; }
+bool SnapshotBridge::automaticRendering() { return drawEachTick; }
 
-bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context) {
+bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context, RenderFunction render) {
     if(!protocol) return false;
     char buffer[4096];
     ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer));
@@ -222,7 +248,7 @@ bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context) 
         if(newline > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
         std::string line = pending.substr(0, newline);
         pending.erase(0, newline + 1);
-        if(process(line, x, y, tick, context) || failed) return true;
+        if(process(line, x, y, tick, context, render) || failed) return true;
     }
     if(pending.size() > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
     return failed;

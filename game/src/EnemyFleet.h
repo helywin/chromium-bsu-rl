@@ -33,6 +33,8 @@ public:
 	~EnemyFleet();
 
 	void	drawGL();
+	// RL local change 2026-09-07: targeting belongs to a tick, not a redraw.
+	void	advanceTargeting();
 	void	clear();
 
 	void	addEnemy(EnemyAircraft *);

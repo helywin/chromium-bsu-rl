@@ -6,9 +6,12 @@ namespace SnapshotBridge {
 // Opt-in via CHROMIUM_BSU_RL_PROTOCOL=1. Linux/POSIX only in this stage.
 bool initialize();
 bool synchronous();
+bool automaticRendering();
 typedef bool (*TickFunction)(int dx, int dy, bool fire, void *context);
+typedef bool (*RenderFunction)(void *context);
 // Called only on the game thread between complete loop iterations.
 // True means close requested, stdin ended, or transport failed.
-bool pump(float &keyboardX, float &keyboardY, TickFunction tick = 0, void *context = 0);
+bool pump(float &keyboardX, float &keyboardY, TickFunction tick = 0, void *context = 0,
+          RenderFunction render = 0);
 }
 #endif

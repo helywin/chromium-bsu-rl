@@ -339,6 +339,15 @@ void	Explosions::update()
 }
 
 //----------------------------------------------------------
+// RL local change 2026-09-07: electric particle acceleration is a tick effect.
+void Explosions::advanceElectric()
+{
+	const float scale = (1.0-game->speedAdj)+(game->speedAdj*1.075);
+	for(Explo *e = exploRoot[Electric]->next; e; e = e->next)
+		if(e->age * game->speedAdj >= 0)
+			for(int axis = 0; axis < 3; ++axis) e->vel[axis] *= scale;
+}
+
 void	Explosions::drawGL()
 {
 
@@ -624,10 +633,6 @@ void	Explosions::drawElectric(ExploType type)
 			glColor4f(clr[0], clr[1], clr[2], clr[3]*alpha);
 			ex = exploSize[type][0];
 			ey = exploSize[type][1]*tmp;
-			tmp = (1.0-game->speedAdj)+(game->speedAdj*1.075);
-			thisExplo->vel[0] *= tmp;
-			thisExplo->vel[1] *= tmp;
-			thisExplo->vel[2] *= tmp;
 			pos = thisExplo->pos;
 			tOff = FRAND;
 			glPushMatrix();
@@ -737,4 +742,3 @@ void Explo::init(float p[3], float v[3], float c[4], int a, float s)
 	back	= 0;
 	next 	= 0;
 }
-

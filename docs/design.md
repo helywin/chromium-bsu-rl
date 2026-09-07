@@ -1,6 +1,6 @@
 # Python训练接口与加速设计
 
-状态：源码导入、本地构建和只读Python客户端已完成；同步GUI的step原型已实现，阶段C部分完成。每tick仍绘图，完整更新/渲染拆分、reset/seed、奖励与无渲染加速仍待实现。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)、[快照验证](validation/live-snapshot.md)和[同步step契约](synchronous-step.md)，原快照协议见[protocol.md](protocol.md)。
+状态：单关同步逻辑与绘图已拆分，支持不逐步绘图采样、独立render和敌方子弹快照；9条绘图开关轨迹一致。仍依赖显示服务与GL，真正headless、公开reset/seed、奖励与Gym封装待实现。当前契约见[render-free-stepping.md](render-free-stepping.md)。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)、[快照验证](validation/live-snapshot.md)和[同步step契约](synchronous-step.md)，原快照协议见[protocol.md](protocol.md)。
 
 ## 仓库布局（拟建）
 
@@ -74,6 +74,8 @@ Gym包装把可变长对象列表编码为固定槽位、掩码与稳定排序�
 reset先设置关卡与难度，再初始化；重置对象、控制内部速度、事件、ID、冷却、过场和所有随机状态（含随机表/游标）。禁写用户高分和存档。进程内reset与新进程重开对照，先限定同构建的复现性。
 
 ## 里程碑
+
+2026-09-07增量：单关C阶段已完成绘图/逻辑分离与重复render不推进验证。原[副作用审查](render-separation-audit.md)保留为历史记录；新版视觉随机不再消耗逻辑随机流，行为版本为split-render-v2。整局过场和真正无显示服务运行仍在范围之外。
 
 1. 来源和许可齐全的源码导入、独立构建、原生GUI启动。
 2. 类型化只读状态与Python进程协议。

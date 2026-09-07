@@ -33,6 +33,7 @@ public:
 
 	void	darkenGL();
 	void	drawGL(HeroAircraft	*hero);
+	void	update(HeroAircraft *hero);
 
 	void	setAmmoAlpha(float in)	{ ammoAlpha = in; };
 	void	setDamageAlpha(float in) { damageAlpha = in; };
@@ -72,10 +73,11 @@ private:
 	int tipSuperShow;
 
 	float enemyWarn;
+	float displayEnemyWarn = 0.0;
+	float rot = 0.0;
 
 private:
 	Global	*game;
 };
 
 #endif // StatusDisplay_h
-

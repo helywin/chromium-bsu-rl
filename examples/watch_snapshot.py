@@ -27,7 +27,7 @@ def main() -> None:
                 print(f"mode={state.mode:10s} frame={state.game_frame:6d} "
                       f"xy=({player.position[0]:7.3f}, {player.position[1]:7.3f}) "
                       f"lives_counter={player.lives_counter} score={player.score:.1f} "
-                      f"enemies={len(state.enemies)}", flush=True)
+                      f"enemies={len(state.enemies)} enemy_bullets={len(state.enemy_bullets)}", flush=True)
                 time.sleep(0.5)
     except KeyboardInterrupt:
         print("Stopped; owned game process cleaned up.")

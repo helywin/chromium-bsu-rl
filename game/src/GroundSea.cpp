@@ -57,11 +57,17 @@ GroundSea::~GroundSea()
 }
 
 //----------------------------------------------------------
+// RL local change 2026-09-07: drawing never recycles background segments.
 void GroundSea::drawGL()
 {
-	glClearColor( 0.15, 0.12, 0.10, 1.0 );
-//	glClearColor(0.27451, 0.235294, 0.392157, 1.0); // web page background color
+	glColor4f(0.9, 0.9, 0.9, 0.7);
+	for(GroundSegment *seg = rootSeg->next; seg; seg = seg->next)
+		seg->drawGL();
+}
 
+void GroundSea::update()
+{
+//
 	GroundSegment	*seg;
 	GroundSegment	*tmp;
 	float	s2 = size * 2.0;
@@ -74,11 +80,10 @@ void GroundSea::drawGL()
 		seg = seg->next;
 	}
 
-	glColor4f(0.9, 0.9, 0.9, 0.7);
 	seg = rootSeg->next;
 	while(seg)
 	{
-		seg->drawGL();
+
 
 		seg->pos[1] += game->scrollSpeed;
 		if(seg->pos[1] < -s2)

@@ -102,6 +102,16 @@ void	EnemyFleet::clear()
 }
 
 //----------------------------------------------------------
+void EnemyFleet::advanceTargeting()
+{
+	for(EnemyAircraft *enemy = squadRoot->next; enemy; enemy = enemy->next)
+	{
+		if((enemy->type == EnemyStraight && !((enemy->age - 192) % 256)) ||
+		   (enemy->type == EnemyBoss01 && !((enemy->age - 272) % 256)))
+			retarget(EnemyGnat, game->hero);
+	}
+}
+
 void	EnemyFleet::drawGL()
 {
 	float szx, szy;
@@ -147,10 +157,6 @@ void	EnemyFleet::drawGL()
 					glPopMatrix();
 					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 					glColor4f(1.0, 1.0, 1.0, 1.0);
-				}
-			 	if(!((thisEnemy->age-192)%256))
-				{
-					retarget(EnemyGnat, game->hero);
 				}
 				break;
 			case EnemyOmni:
@@ -227,10 +233,6 @@ void	EnemyFleet::drawGL()
 					}
 					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 					glColor4f(1.0, 1.0, 1.0, 1.0);
-				}
-			 	if(!((thisEnemy->age-272)%256))
-				{
-					retarget(EnemyGnat, game->hero);
 				}
 				break;
 			default:

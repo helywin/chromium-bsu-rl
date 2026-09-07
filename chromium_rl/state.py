@@ -65,14 +65,19 @@ class Capabilities:
     reset: bool
     headless: bool
     deterministic: bool
+    render: bool = False
+    render_free_steps: bool = False
+    enemy_bullets: bool = False
 
     @classmethod
     def parse(cls, value: object) -> "Capabilities":
         d = mapping(value)
-        if integer(d["schema_version"]) != 1:
+        if integer(d["schema_version"]) not in (1, 2):
             raise ValueError("Unsupported snapshot schema")
         return cls(text(d["implementation"]), text(d["upstream_version"]),
-                   *(boolean(d[k]) for k in ("live_snapshot", "step", "reset", "headless", "deterministic")))
+                   *(boolean(d[k]) for k in ("live_snapshot", "step", "reset", "headless", "deterministic")),
+                   boolean(d.get("render", False)), boolean(d.get("render_free_steps", False)),
+                   boolean(d.get("enemy_bullets", False)))
 
 
 @dataclass(frozen=True)
@@ -111,6 +116,27 @@ class EnemyState:
 
 
 @dataclass(frozen=True)
+class EnemyBulletState:
+    id: int
+    type: int
+    position: Vec3
+    velocity_per_tick: Vec3
+    sprite_half_size: Vec2
+    damage: float
+
+    @classmethod
+    def parse(cls, value: object) -> "EnemyBulletState":
+        d = mapping(value)
+        result = cls(integer(d["id"]), integer(d["type"]),
+                     cast(Vec3, vector(d["position"], 3)),
+                     cast(Vec3, vector(d["velocity_per_tick"], 3)),
+                     cast(Vec2, vector(d["sprite_half_size"], 2)), number(d["damage"]))
+        if result.id <= 0 or not 0 <= result.type < 5 or any(v <= 0 for v in result.sprite_half_size):
+            raise ValueError("Invalid enemy bullet identity/type/size")
+        return result
+
+
+@dataclass(frozen=True)
 class Snapshot:
     mode: str
     paused: bool
@@ -119,18 +145,25 @@ class Snapshot:
     speed_adjustment: float
     player: PlayerState
     enemies: tuple[EnemyState, ...]
+    enemy_bullets: tuple[EnemyBulletState, ...] = ()
+    rng_cursor: int | None = None
 
     @classmethod
     def parse(cls, value: object) -> "Snapshot":
         d = mapping(value)
-        if integer(d["schema_version"]) != 1:
+        schema = integer(d["schema_version"])
+        if schema not in (1, 2):
             raise ValueError("Unsupported snapshot schema")
         mode = text(d["mode"])
         if mode not in ("game", "menu", "level_over", "hero_dead"):
             raise ValueError("Unknown game mode")
+        bullets = tuple(EnemyBulletState.parse(b) for b in values(d["enemy_bullets"])) if schema == 2 else ()
+        if len({b.id for b in bullets}) != len(bullets):
+            raise ValueError("Duplicate enemy bullet ID")
         return cls(mode, boolean(d["paused"]), integer(d["game_frame"]), integer(d["level"]),
                    number(d["speed_adjustment"]), PlayerState.parse(d["player"]),
-                   tuple(EnemyState.parse(e) for e in values(d["enemies"])))
+                   tuple(EnemyState.parse(e) for e in values(d["enemies"])), bullets,
+                   integer(d["rng_cursor"]) if schema == 2 else None)
 
 
 @dataclass(frozen=True)

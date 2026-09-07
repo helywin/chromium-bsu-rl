@@ -1,5 +1,6 @@
 """Developer regression checks, not learner exercises. Uses only stdlib."""
 import os
+from dataclasses import replace
 from pathlib import Path
 import sys
 import tempfile
@@ -8,7 +9,7 @@ import unittest
 
 from chromium_rl import Action, GameClient, ProtocolError, RemoteError
 from chromium_rl.client import _JsonProcess
-from chromium_rl.state import boolean, integer, number, vector
+from chromium_rl.state import EnemyBulletState, boolean, integer, number, vector
 
 
 class TransportTests(unittest.TestCase):
@@ -48,9 +49,47 @@ class TransportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             vector([1, 2], 3)
 
+    def test_enemy_bullet_validation(self) -> None:
+        data = dict(id=1, type=0, position=[0, 1, 25],
+                    velocity_per_tick=[0, -0.2, 0], sprite_half_size=[0.25, 0.55], damage=75)
+        self.assertEqual(EnemyBulletState.parse(data).velocity_per_tick[1], -0.2)
+        for key, value in (("id", True), ("id", 0), ("type", 5),
+                           ("position", [0, 1]), ("velocity_per_tick", [0, float("nan"), 0]),
+                           ("sprite_half_size", [0, 1])):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                EnemyBulletState.parse({**data, key: value})
+
 
 @unittest.skipUnless(os.environ.get("RUN_CHROMIUM_GUI_TESTS") == "1", "explicit GUI opt-in required")
 class NativeTests(unittest.TestCase):
+    def test_enemy_bullets_and_render(self) -> None:
+        with GameClient(synchronous=True, render_each_step=False, video_driver="x11") as game:
+            self.assertTrue(game.capabilities.render_free_steps)
+            self.assertTrue(game.capabilities.enemy_bullets)
+            self.assertFalse(game.capabilities.headless)
+            self.assertEqual(game.snapshot(), game.render())
+            previous = {}
+            moved = 0
+            for _ in range(2000):
+                result = game.step(Action.IDLE)
+                bullets = {b.id: b for b in result.snapshot.enemy_bullets}
+                for identity in previous.keys() & bullets.keys():
+                    old, new = previous[identity], bullets[identity]
+                    self.assertEqual(old.type, new.type)
+                    self.assertEqual(old.velocity_per_tick, new.velocity_per_tick)
+                    for axis in range(3):
+                        self.assertAlmostEqual(new.position[axis],
+                                               old.position[axis] + old.velocity_per_tick[axis], places=5)
+                    moved += 1
+                previous = bullets
+                if moved >= 5 or result.terminated:
+                    break
+            self.assertGreaterEqual(moved, 5)
+            state = game.snapshot()
+            for _ in range(3):
+                self.assertEqual(state, game.render())
+            self.assertEqual(state, game.snapshot())
+
     def test_single_level_terminal_freezes(self) -> None:
         with GameClient(synchronous=True, video_driver="x11") as game:
             for _ in range(400):
@@ -112,13 +151,14 @@ class NativeTests(unittest.TestCase):
             self.assertEqual(first.mode, "menu")
             self.assertEqual(first.player.position, (0.0, -3.0, 25.0))
             self.assertEqual(first.player.lives_counter, 4)
-            self.assertEqual(first, game.snapshot())
+            # Live menu's RNG cursor is not frozen.
+            self.assertEqual(first, replace(game.snapshot(), rng_cursor=first.rng_cursor))
             self.assertIsNotNone(game._transport)
             transport = game._transport
             assert transport is not None
             with self.assertRaises(RemoteError):
                 transport.call("step")
-            self.assertEqual(first, game.snapshot())
+            self.assertEqual(first, replace(game.snapshot(), rng_cursor=first.rng_cursor))
             process = transport.process
         self.assertEqual(process.returncode, 0)
         game.close()

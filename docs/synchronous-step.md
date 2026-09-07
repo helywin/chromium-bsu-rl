@@ -1,6 +1,6 @@
-# Synchronous GUI step, control model v1
+# Historical synchronous GUI step, control model v1
 
-Stage C is partially implemented: exact action/tick boundaries, not a render-free game loop.
+Historical stage-C prototype record. Superseded by [split-render-v2 and snapshot schema2](render-free-stepping.md), which supports render-free steps and independent render. The limitations below describe v1, not the current build.
 
 ## Process and wire contract
 

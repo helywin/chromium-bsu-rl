@@ -45,6 +45,7 @@ public:
 
 	void	update();
 	void	drawGL();
+	void	advanceElectric();
 	void	clear();
 
 	void	loadTextures();

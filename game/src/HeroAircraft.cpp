@@ -49,6 +49,7 @@ HeroAircraft::HeroAircraft()
 
 	superBomb	= 0;
 	dontShow	= 0;
+	showSprite = true;
 	lives		= 4;
 	score		= 0.0;
 
@@ -794,20 +795,24 @@ void HeroAircraft::update()
 }
 
 //----------------------------------------------------------
+void HeroAircraft::advanceVisibility()
+{
+	// Legacy drawing chose the sprite before decrementing dontShow; the HUD
+	// then observed the decremented value. Cache that choice to preserve both.
+	showSprite = !dontShow;
+	if(dontShow) --dontShow;
+}
+
 void HeroAircraft::drawGL()
 {
 	//-- draw hero
 	glPushMatrix();
 	glTranslatef(pos[0], pos[1], pos[2]);
-	if(!dontShow)
+	if(showSprite)
 	{
 		glColor4f(1.0, 1.0, 1.0, 1.0);
 		glBindTexture(GL_TEXTURE_2D, heroTex);
 		drawQuad(size[0], size[1]);
-	}
-	else
-	{
-		dontShow--;
 	}
 	//-- draw super shields in StatusDisplay to get better blend mode...
 	glPopMatrix();
@@ -910,7 +915,6 @@ void HeroAircraft::deathExplosions()
 		}
 	}
 }
-
 
 
 

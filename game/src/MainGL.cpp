@@ -186,18 +186,8 @@ void MainGL::drawGL()
 }
 
 //----------------------------------------------------------
-void MainGL::drawGameGL()
+void MainGL::updateGameLogic()
 {
-	Config *config = Config::instance();
-	//-- Clear buffers
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//	glClear( GL_COLOR_BUFFER_BIT );
-
-	//-- Place camera
-	glLoadIdentity();
-	glTranslatef(0.0, 0.0, config->zTrans());
-//	glTranslatef(0.0, 5.0, -12.0);
-
 	if(!game->game_pause)
 	{
 		//-- Add items to scene
@@ -222,6 +212,37 @@ void MainGL::drawGameGL()
 		game->hero->update();
 		game->gameFrame++;
 	}
+}
+
+// RL local change 2026-09-07: complete single-level tick; no GL calls.
+void MainGL::advanceSimulationTick()
+{
+	updateGameLogic();
+	game->ground->update();
+	game->enemyFleet->advanceTargeting();
+	game->hero->advanceVisibility();
+	game->explosions->advanceElectric();
+	game->statusDisplay->update(game->hero);
+}
+
+// Human-mode convenience wrapper. RL calls update and render separately.
+void MainGL::drawGameGL()
+{
+	advanceSimulationTick();
+	renderGameFrame();
+}
+
+void MainGL::renderGameFrame()
+{
+	Config *config = Config::instance();
+	// Visual draws replay a tick-specific part of the table and restore the
+	// gameplay cursor. Repeated drawing cannot consume future gameplay RNG.
+	const int savedRandomIndex = Global::randIndex;
+	Global::randIndex = Global::frame % 256;
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	glTranslatef(0.0, 0.0, config->zTrans());
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -248,6 +269,7 @@ void MainGL::drawGameGL()
 
 	//-- Draw stats
 	game->statusDisplay->drawGL(game->hero);
+	Global::randIndex = savedRandomIndex;
 
 }
 
@@ -285,8 +307,10 @@ void MainGL::drawDeadGL()
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//-- Draw background
+	game->ground->update();
 	game->ground->drawGL();
 	//-- Draw actors
+	game->enemyFleet->advanceTargeting();
 	game->enemyFleet->drawGL();
 
 	if(config->gfxLevel() > 0)
@@ -298,8 +322,10 @@ void MainGL::drawDeadGL()
 	game->heroAmmo->drawGL();
 	game->enemyAmmo->drawGL();
 	//-- Draw explosions
+	game->explosions->advanceElectric();
 	game->explosions->drawGL();
 	//-- Draw stats
+	game->statusDisplay->update(game->hero);
 	game->statusDisplay->drawGL(game->hero);
 
 	int		skill = config->intSkill();
@@ -360,8 +386,10 @@ void MainGL::drawSuccessGL()
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//-- Draw background
+	game->ground->update();
 	game->ground->drawGL();
 	//-- Draw actors
+	game->hero->advanceVisibility();
 	game->hero->drawGL();
 
 	if(config->gfxLevel() > 0)
@@ -371,8 +399,10 @@ void MainGL::drawSuccessGL()
 	//-- Draw ammo
 	game->heroAmmo->drawGL();
 	//-- Draw explosions
+	game->explosions->advanceElectric();
 	game->explosions->drawGL();
 	//-- Draw stats
+	game->statusDisplay->update(game->hero);
 	game->statusDisplay->drawGL(game->hero);
 
 	char	buffer[512];

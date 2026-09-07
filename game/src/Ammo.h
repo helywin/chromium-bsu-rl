@@ -7,6 +7,7 @@
  */
 #ifndef Ammo_h
 #define Ammo_h
+#include <cstdint>
 
 //====================================================================
 class ActiveAmmo
@@ -22,6 +23,8 @@ public:
 	float	pos[3];
 	float	vel[3];
 	float	damage;
+	// RL local change 2026-09-07: assigned on each enemy-bullet spawn, never a pointer.
+	std::uint64_t snapshotId = 0;
 
 	ActiveAmmo *back;
 	ActiveAmmo *next;

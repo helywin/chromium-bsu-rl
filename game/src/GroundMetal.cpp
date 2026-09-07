@@ -105,19 +105,20 @@ void GroundMetal::setVariation(int index)
 }
 
 //----------------------------------------------------------
+// RL local change 2026-09-07: background mutation is tick-driven.
 void GroundMetal::drawGL()
+{
+	for(GroundSegment *seg = rootSeg->next; seg; seg = seg->next)
+		seg->drawGL();
+}
+
+void GroundMetal::update()
 {
 	GroundSegment	*seg;
 	GroundSegment	*tmp;
 	float	s2 = size * 2.0;
 
-	//-- Set background color for low and med gfx
-	float	pulse = sin(game->gameFrame*0.03);
-	if(pulse < 0.0)
-		pulse = 0.0;
-	glClearColor( 0.2+pulse, 0.2, 0.25, 1.0 );
-
-	//-- draw ground segments
+	//-- Advance background segments
 	if( !game->game_pause || game->gameMode == Global::Menu)
 	{
 		seg = rootSeg->next;
@@ -131,7 +132,7 @@ void GroundMetal::drawGL()
 	seg = rootSeg->next;
 	while(seg)
 	{
-		seg->drawGL();
+		seg->age += 1.0;
 
 		if(seg->pos[1] < -s2)
 		{
@@ -151,5 +152,4 @@ void GroundMetal::drawGL()
 	}
 
 }
-
 

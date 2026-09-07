@@ -114,9 +114,11 @@ class GameClient:
 
     def __init__(self, *, binary: Path | None = None, data_directory: Path | None = None,
                  video_driver: str | None = None, timeout: float = 10.0, debug: bool = False,
-                 synchronous: bool = False):
+                 synchronous: bool = False, render_each_step: bool = True):
         if type(synchronous) is not bool:
             raise ValueError("synchronous must be a boolean")
+        if type(render_each_step) is not bool or (not synchronous and not render_each_step):
+            raise ValueError("render_each_step=False requires synchronous=True")
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
         root = Path(__file__).resolve().parents[1]
@@ -134,7 +136,8 @@ class GameClient:
         env = os.environ.copy()
         env.update(CHROMIUM_BSU_RL_PROTOCOL="1", CHROMIUM_BSU_RL_STATE_DIR=str(state),
                    CHROMIUM_BSU_SCORE=str(state / "scores"), CHROMIUM_BSU_DATA=str(data_directory),
-                   CHROMIUM_BSU_RL_SYNCHRONOUS="1" if synchronous else "0")
+                   CHROMIUM_BSU_RL_SYNCHRONOUS="1" if synchronous else "0",
+                   CHROMIUM_BSU_RL_RENDER="1" if render_each_step else "0")
         if video_driver is not None:
             env["SDL_VIDEODRIVER"] = video_driver
         command = [str(binary), "--window", "--vidmode", "1", "--noaudio"]
@@ -145,6 +148,8 @@ class GameClient:
             self.capabilities = Capabilities.parse(self._transport.call("hello"))
             if synchronous and not self.capabilities.step:
                 raise ProtocolError("Native build lacks synchronous step; rebuild first")
+            if not render_each_step and not self.capabilities.render_free_steps:
+                raise ProtocolError("Native build lacks render-free stepping; rebuild first")
         except BaseException:
             if self._transport is not None:
                 self._transport.stop()
@@ -159,6 +164,18 @@ class GameClient:
         except (ValueError, KeyError) as exc:
             self.close()
             raise ProtocolError(f"Invalid snapshot: {exc}") from exc
+
+    def render(self) -> Snapshot:
+        """Display the current state without stepping; display/GL still required."""
+        if self._transport is None:
+            raise ProtocolError("Game client is closed")
+        if not self.capabilities.render:
+            raise RemoteError("render requires a synchronous split-render native build")
+        try:
+            return Snapshot.parse(self._transport.call("render"))
+        except (ValueError, KeyError) as exc:
+            self.close()
+            raise ProtocolError(f"Invalid render response: {exc}") from exc
 
     def step(self, action: Action, *, ticks: int = 1) -> StepResult:
         """Hold an action for 1..50 full ticks; stop early at single-level end.

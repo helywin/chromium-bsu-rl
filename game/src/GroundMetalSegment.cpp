@@ -42,11 +42,11 @@ GroundMetalSegment::~GroundMetalSegment()
 void GroundMetalSegment::drawGL()
 {
 	Config *config = Config::instance();
-	static float c0_clr[4] = { 0.65, 0.62, 0.53, 1.0 };
-	static float c1_clr[4] = { 0.79, 0.82, 0.69, 1.0 };
-	static float r0_clr[4]  = { 0.07, 0.07, 0.13, 1.0 };
-	static float r1_clr[4]  = { 0.31, 0.30, 0.30, 1.0 };
-	static float r2_clr[4]  = { 0.31, 0.30, 0.30, 1.0 };
+	float c0_clr[4] = { 0.65, 0.62, 0.53, 1.0 };
+	float c1_clr[4] = { 0.79, 0.82, 0.69, 1.0 };
+	float r0_clr[4]  = { 0.07, 0.07, 0.13, 1.0 };
+	float r1_clr[4]  = { 0.31, 0.30, 0.30, 1.0 };
+	float r2_clr[4]  = { 0.31, 0.30, 0.30, 1.0 };
 	float S;
 	float tmp;
 	float rep;
@@ -54,7 +54,6 @@ void GroundMetalSegment::drawGL()
 	float clr_sin;
 	bool blipMirrorT = false;
 
-	age += 1.0;
 
 	clr_sin = 0.5*sin(parent->game->gameFrame*0.001);
 	r1_clr[0] = 0.15+clr_sin;
