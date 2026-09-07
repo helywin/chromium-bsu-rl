@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chromium-bsu-rl"
+version = "0.1.0"
+description = "Typed live snapshot client for Chromium B.S.U. for RL (not yet a training environment)"
+requires-python = ">=3.11"
+readme = "README.md"
+license = {file = "game/COPYING"}
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["chromium_rl*"]
+
+[tool.setuptools.package-data]
+chromium_rl = ["py.typed"]

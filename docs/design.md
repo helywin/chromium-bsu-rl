@@ -1,6 +1,6 @@
 # Python训练接口与加速设计
 
-状态：源码导入和本地构建已完成，GUI菜单与游戏画面已检查；以下训练接口仍是提案。该项目独立于任何课程仓库；构建、Python包装和验证工具均在本仓库维护。证据见 [源码构建记录](validation/source-build.md)。
+状态：源码导入、本地构建和只读Python客户端已完成；hello/snapshot/close可用。以下step/reset、确定性、奖励与加速接口仍是提案。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)和[快照验证](validation/live-snapshot.md)，当前协议见[protocol.md](protocol.md)。
 
 ## 仓库布局（拟建）
 

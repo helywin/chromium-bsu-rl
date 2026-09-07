@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: expose read-only next node for snapshots.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -43,6 +44,7 @@ class EnemyAircraft : public ScreenItem
 {
 public:
 	EnemyAircraft(EnemyType et, float p[3], float randFact = 1.0);
+	const EnemyAircraft *nextForSnapshot() const { return next; }
 	virtual ~EnemyAircraft();
 
 	virtual void	update() = 0;

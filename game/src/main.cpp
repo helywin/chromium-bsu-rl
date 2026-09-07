@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: initialize protocol before any startup logs.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -49,10 +50,12 @@
 #include "HiScore.h"
 
 #include "EnemyAircraft.h"
+#include "rl/SnapshotBridge.h"
 
 //----------------------------------------------------------
 int main(int argc, char **argv)
 {
+	if(!SnapshotBridge::initialize()) return 1;
 	int i;
 	int	tmp;
 	int	vm = 2;

@@ -1,8 +1,10 @@
+# RL local change 2026-09-07: compile/link the JSON snapshot bridge.
 MAINTAINERCLEANFILES = Makefile.in
 
 bin_PROGRAMS = chromium-bsu
 
 chromium_bsu_CPPFLAGS = \
+	$(JSONC_CFLAGS) \
 	$(GL_CFLAGS) \
 	$(GLU_CFLAGS) \
 	$(TEXT_CFLAGS) \
@@ -14,6 +16,7 @@ chromium_bsu_CPPFLAGS = \
 	"-DPKGDATADIR=\"$(pkgdatadir)\""
 
 chromium_bsu_LDADD = \
+	$(JSONC_LIBS) \
 	$(GL_LIBS) \
 	$(GLU_LIBS) \
 	$(TEXT_LIBS) \
@@ -23,6 +26,8 @@ chromium_bsu_LDADD = \
 	$(INTLLIBS)
 
 chromium_bsu_SOURCES = \
+	rl/SnapshotBridge.cpp \
+	rl/SnapshotBridge.h \
 	Ammo.cpp \
 	Ammo.h \
 	Audio.cpp \

@@ -2,7 +2,7 @@
 
 A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
 
-**Status: source/build baseline available.** Upstream sources are imported and the repository-local GUI build has been checked on Linux. There is no working training API, accelerated simulation, installable Python package, or trained model yet. This is not an official Chromium B.S.U. release.
+**Status: read-only Python snapshot client available.** Upstream sources and local GUI build are available. `GameClient` implements `hello/snapshot/close` with typed results; `step/reset`, accelerated simulation and trained models are not implemented yet. This is not an official Chromium B.S.U. release.
 
 ## 项目目标
 
@@ -15,7 +15,7 @@ A standalone project for adapting Chromium B.S.U. into a deterministic, accelera
 
 ## 构建与运行（Linux）
 
-需要已有C/C++编译工具、Autoconf/Automake、gettext（含autopoint）、pkg-config，以及SDL2、SDL2_image、OpenGL/GLU、FTGL、Fontconfig、OpenAL、freealut的开发文件。构建脚本会检查依赖，不自动安装或升级软件。
+需要已有C/C++编译工具、Autoconf/Automake、gettext（含autopoint）、pkg-config，以及SDL2、SDL2_image、OpenGL/GLU、FTGL、Fontconfig、OpenAL、freealut、json-c（>=0.15）的开发文件。构建脚本会检查依赖，不自动安装或升级软件。
 
 ```bash
 bash scripts/build_chromium_rl.sh
@@ -27,6 +27,35 @@ bash scripts/run_gui.sh
 请通过启动脚本运行：它使用640×480窗口、关闭声音，并将配置与高分隔离在`build/state/`，不会重设HOME。不带这些环境变量直接运行内部二进制仍会使用上游用户目录规则。菜单中进入游戏，支持方向键和组合斜移；字母快捷键可能受输入法影响。
 
 本次窗口验证使用`SDL_VIDEODRIVER=x11 bash scripts/run_gui.sh`（Wayland桌面上的XWayland路径）。默认原生Wayland路径尚未验收，不宣称无界面模式已实现。详见 [构建与启动记录](docs/validation/source-build.md)。
+
+## Python实时状态（已实现，尚非训练环境）
+
+使用你自己的Python 3.11+虚拟环境。以下在独立仓库根目录执行，`<venv>`替换为该虚拟环境路径；先完成上面的本地构建：
+
+```bash
+<venv>/bin/python -m pip install -e .
+<venv>/bin/python examples/watch_snapshot.py
+```
+
+脚本会打开游戏；你从菜单进入并操作飞机，终端每0.5秒显示坐标、生命计数、得分和敌机数。Python读取的是游戏内部数据，不是截图识别，也不依赖输入法。数据接口、单位与边界见 [protocol.md](docs/protocol.md)。
+
+```python
+from chromium_rl import GameClient, Snapshot
+
+with GameClient() as game:
+    state: Snapshot = game.snapshot()
+    print(state.player.position, state.player.score)
+```
+
+IDE能识别`Snapshot/PlayerState/EnemyState`字段。每个客户端使用单独的临时配置目录，关闭时清理。当前游戏仍按实时循环运行；读取间隔不等于环境步长，不能把相邻两次读取直接当作可靠DQN经验。
+
+开发者检查（不是学习者练习）：
+
+```bash
+<venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+# 显式允许打开GUI的集成检查：
+RUN_CHROMIUM_GUI_TESTS=1 <venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+```
 
 ## 获取仓库
 

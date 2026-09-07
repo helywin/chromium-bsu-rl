@@ -38,6 +38,8 @@ AC_ARG_WITH(macintosh,
 	[])
 
 # Libraries
+# RL local change 2026-09-07: maintained JSON parser for the Linux snapshot bridge.
+PKG_CHECK_MODULES([JSONC], [json-c >= 0.15])
 
 # gettext for internationalisation
 AM_GNU_GETTEXT([external])

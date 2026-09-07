@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: const traversal without modifying currentShip.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -41,6 +42,7 @@ public:
 	void	retarget(EnemyType et, ScreenItem *newTarget);
 
 	void			toFirst();
+	const EnemyAircraft *firstForSnapshot() const { return squadRoot->next; }
 	EnemyAircraft	*getShip();
 
 	void	update();

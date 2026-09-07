@@ -1,4 +1,5 @@
 /*
+ * RL local change 2026-09-07: service read-only requests at main-loop boundaries.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -150,6 +151,7 @@ MainSDL::~MainSDL()
 }
 
 //----------------------------------------------------------
+#include "rl/SnapshotBridge.h"
 bool MainSDL::run()
 {
 	Global	*game = Global::getInstance();
@@ -166,6 +168,7 @@ bool MainSDL::run()
 	while( !done )
 	{
 		SDL_Event event;
+		if(SnapshotBridge::pump(key_speed_x, key_speed_y)) break;
 
 		//-- Draw our scene...
 		game->mainGL->drawGL();
