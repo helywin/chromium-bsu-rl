@@ -14,3 +14,10 @@
 - Const enemy traversal avoids mutating EnemyFleet's shared iteration cursor. Snapshot field sources and limitations are documented in docs/protocol.md.
 - Add independently installable, typed Python client and fault-injection/native checks. Per-client state is temporary and isolated. The close command and EOF exit without desktop keystrokes.
 - The earlier build-stage statement about no Python package is superseded; step/reset, fixed logic time and acceleration are still absent.
+
+## 2026-09-07 — synchronous GUI prototype (stage C partial)
+
+- MainSDL/SnapshotBridge support opt-in fixed reference ticks and full held actions; native human mode remains available. Input now precedes update in synchronous mode, physical inputs are ignored, and no gameplay advances between commands.
+- HeroAircraft::holdFire avoids resetting shot cooldown for repeated held actions. Repeated direction edges are likewise suppressed; release preserves keyboard decay.
+- Original drawGL runs exactly once per tick because render paths still mutate gameplay/RNG. This is not yet separated rendering or headless acceleration. No seed/reset or full-game task is claimed.
+- Python adds Action/StepResult and an optional synchronous constructor; snapshot schema1 remains unchanged. See docs/synchronous-step.md for explicit behavioral differences, termination and evidence.

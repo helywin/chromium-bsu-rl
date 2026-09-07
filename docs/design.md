@@ -1,6 +1,6 @@
 # Python训练接口与加速设计
 
-状态：源码导入、本地构建和只读Python客户端已完成；hello/snapshot/close可用。以下step/reset、确定性、奖励与加速接口仍是提案。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)和[快照验证](validation/live-snapshot.md)，当前协议见[protocol.md](protocol.md)。
+状态：源码导入、本地构建和只读Python客户端已完成；同步GUI的step原型已实现，阶段C部分完成。每tick仍绘图，完整更新/渲染拆分、reset/seed、奖励与无渲染加速仍待实现。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)、[快照验证](validation/live-snapshot.md)和[同步step契约](synchronous-step.md)，原快照协议见[protocol.md](protocol.md)。
 
 ## 仓库布局（拟建）
 

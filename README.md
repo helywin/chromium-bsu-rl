@@ -2,7 +2,7 @@
 
 A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
 
-**Status: read-only Python snapshot client available.** Upstream sources and local GUI build are available. `GameClient` implements `hello/snapshot/close` with typed results; `step/reset`, accelerated simulation and trained models are not implemented yet. This is not an official Chromium B.S.U. release.
+**Status: typed snapshots and opt-in synchronous GUI steps available.** `GameClient(synchronous=True)` runs one first-level episode under Python control. Reset/seed, render-free accelerated simulation and trained models are not implemented. This is not an official Chromium B.S.U. release.
 
 ## 项目目标
 
@@ -56,6 +56,26 @@ IDE能识别`Snapshot/PlayerState/EnemyState`字段。每个客户端使用单�
 # 显式允许打开GUI的集成检查：
 RUN_CHROMIUM_GUI_TESTS=1 <venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+## Python同步动作（GUI原型）
+
+```bash
+<venv>/bin/python examples/watch_steps.py
+```
+
+无需从菜单开始，也无需模拟键盘。脚本演示移动、开火、释放与停顿，退出时关闭自己创建的窗口。
+
+```python
+from chromium_rl import Action, GameClient, StepResult
+
+with GameClient(synchronous=True) as game:
+    result: StepResult = game.step(Action.RIGHT_FIRE, ticks=1)
+    print(result.snapshot.player.position, result.episode_tick)
+```
+
+每个内部tick采用原版50fps参考尺度（`speedAdj=1`，标称0.02秒），执行完整更新和绘图。没有step就不推进；连续相同方向视为保持按下，IDLE为释放并衰减，不是瞬间清零。每条指令最多50tick，到死亡或本关完成立即停下。
+
+这是**仅第一关的同步GUI原型**，不是完整Gym环境。仍需要显示服务/GL；绘图与逻辑尚未拆开，无额外render命令，无确定性seed/reset、奖励、子弹快照或整局任务。重新创建客户端才能开新一局。见[同步协议与边界](docs/synchronous-step.md)。
 
 ## 获取仓库
 

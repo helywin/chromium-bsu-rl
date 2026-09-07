@@ -3,9 +3,10 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 
-from chromium_rl import GameClient, ProtocolError, RemoteError
+from chromium_rl import Action, GameClient, ProtocolError, RemoteError
 from chromium_rl.client import _JsonProcess
 from chromium_rl.state import boolean, integer, number, vector
 
@@ -50,6 +51,57 @@ class TransportTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("RUN_CHROMIUM_GUI_TESTS") == "1", "explicit GUI opt-in required")
 class NativeTests(unittest.TestCase):
+    def test_single_level_terminal_freezes(self) -> None:
+        with GameClient(synchronous=True, video_driver="x11") as game:
+            for _ in range(400):
+                result = game.step(Action.IDLE, ticks=50)
+                if result.terminated:
+                    break
+            self.assertTrue(result.terminated)
+            self.assertIn(result.snapshot.mode, ("hero_dead", "level_over"))
+            before = game.snapshot()
+            with self.assertRaises(RemoteError):
+                game.step(Action.IDLE)
+            self.assertEqual(before, game.snapshot())
+
+    def test_synchronous_steps_and_idle(self) -> None:
+        with GameClient(synchronous=True, video_driver="x11") as game:
+            self.assertTrue(game.capabilities.step)
+            initial = game.snapshot()
+            self.assertEqual(initial.game_frame, 0)
+            self.assertEqual(initial.mode, "game")
+            time.sleep(0.15)
+            self.assertEqual(initial, game.snapshot())
+            first = game.step(Action.RIGHT)
+            self.assertEqual(first.actual_ticks, 1)
+            self.assertEqual(first.episode_tick, 1)
+            self.assertEqual(first.snapshot.game_frame, 1)
+            self.assertAlmostEqual(first.snapshot.player.position[0], 0.18, places=5)
+            self.assertAlmostEqual(first.snapshot.player.keyboard_motion[0], 6.3, places=5)
+            second = game.step(Action.RIGHT)
+            self.assertAlmostEqual(second.snapshot.player.keyboard_motion[0], 7.574, places=5)
+            self.assertAlmostEqual(second.snapshot.player.position[0], 0.39, places=5)
+            released = game.step(Action.IDLE)
+            self.assertAlmostEqual(released.snapshot.player.keyboard_motion[0], 5.3018, places=5)
+            self.assertAlmostEqual(released.snapshot.player.position[0], 0.54, places=5)
+            multi = game.step(Action.UP_RIGHT, ticks=3)
+            self.assertEqual(multi.episode_tick, 6)
+            self.assertEqual(multi.actual_ticks, 3)
+            self.assertEqual(multi.snapshot.game_frame, 6)
+            self.assertEqual(multi.snapshot.speed_adjustment, 1)
+            self.assertGreater(multi.snapshot.player.position[1], -3)
+            time.sleep(0.15)
+            self.assertEqual(multi.snapshot, game.snapshot())
+            transport = game._transport
+            assert transport is not None
+            for action, ticks in ((True, 1), (18, 1), (0, 0), (0, 51), (0, 1.0)):
+                with self.assertRaises(RemoteError):
+                    transport.call("step", action=action, ticks=ticks)
+                self.assertEqual(multi.snapshot, game.snapshot())
+            for ticks in (True, 0, 51):
+                with self.assertRaises(ValueError):
+                    game.step(Action.IDLE, ticks=ticks)
+
     def test_live_snapshot_and_close(self) -> None:
         with GameClient(video_driver="x11", debug=True) as game:
             self.assertTrue(game.capabilities.live_snapshot)

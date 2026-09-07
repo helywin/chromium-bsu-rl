@@ -131,3 +131,26 @@ class Snapshot:
         return cls(mode, boolean(d["paused"]), integer(d["game_frame"]), integer(d["level"]),
                    number(d["speed_adjustment"]), PlayerState.parse(d["player"]),
                    tuple(EnemyState.parse(e) for e in values(d["enemies"])))
+
+
+@dataclass(frozen=True)
+class StepResult:
+    snapshot: Snapshot
+    actual_ticks: int
+    episode_tick: int
+    simulated_seconds: float
+    terminated: bool
+
+    @classmethod
+    def parse(cls, value: object) -> "StepResult":
+        d = mapping(value)
+        result = cls(Snapshot.parse(d["snapshot"]), integer(d["actual_ticks"]),
+                     integer(d["episode_tick"]), number(d["simulated_seconds"]),
+                     boolean(d["terminated"]))
+        if not 1 <= result.actual_ticks <= 50 or result.episode_tick < result.actual_ticks:
+            raise ValueError("Invalid tick counts")
+        if not math.isclose(result.simulated_seconds, result.episode_tick * 0.02):
+            raise ValueError("Invalid fixed-step time")
+        if result.terminated != (result.snapshot.mode in ("hero_dead", "level_over")):
+            raise ValueError("Invalid single-level termination")
+        return result

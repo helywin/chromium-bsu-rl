@@ -40,6 +40,8 @@ public:
 
 	void	moveEvent(int x, int y);
 	void	fireGun(bool);
+	// RL local change 2026-09-07: held fire must not restart cooldown each tick.
+	void    holdFire(bool status) { if(status != gunTrigger) fireGun(status); }
 	void	shootGun();
 	void	useItem(int index);
 	void	useItem();
@@ -141,4 +143,3 @@ private:
 };
 
 #endif // HeroAircraft_h
-

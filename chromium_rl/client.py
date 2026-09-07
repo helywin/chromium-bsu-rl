@@ -13,7 +13,8 @@ import time
 from types import TracebackType
 from typing import Mapping, Sequence
 
-from .state import Capabilities, Snapshot, boolean, integer, mapping, text
+from .action import Action
+from .state import Capabilities, Snapshot, StepResult, boolean, integer, mapping, text
 
 
 class ProtocolError(RuntimeError):
@@ -41,12 +42,12 @@ class _JsonProcess:
         assert self.process.stdin is not None and self.process.stdout is not None
         self._selector.register(self.process.stdout, selectors.EVENT_READ)
 
-    def call(self, command: str) -> object:
+    def call(self, command: str, **arguments: object) -> object:
         with self._lock:
             if self._closed:
                 raise ProtocolError("Game connection is closed")
             self._request_id += 1
-            wire = json.dumps({"protocol_version": 1, "request_id": self._request_id,
+            wire = json.dumps({**arguments, "protocol_version": 1, "request_id": self._request_id,
                                "command": command}, allow_nan=False).encode() + b"\n"
             if len(wire) > 8192:
                 raise ValueError("Request is too large")
@@ -104,7 +105,7 @@ class _JsonProcess:
 
 
 class GameClient:
-    """Open one GUI game and read live state. No step/reset methods exist yet.
+    """Open a live GUI, or opt into one synchronous first-level episode.
 
     Defaults locate an editable source checkout's local build. For an installed
     wheel pass binary and data_directory explicitly; game assets are not in the wheel.
@@ -112,7 +113,10 @@ class GameClient:
     """
 
     def __init__(self, *, binary: Path | None = None, data_directory: Path | None = None,
-                 video_driver: str | None = None, timeout: float = 10.0, debug: bool = False):
+                 video_driver: str | None = None, timeout: float = 10.0, debug: bool = False,
+                 synchronous: bool = False):
+        if type(synchronous) is not bool:
+            raise ValueError("synchronous must be a boolean")
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
         root = Path(__file__).resolve().parents[1]
@@ -129,7 +133,8 @@ class GameClient:
         state = Path(self._state.name)
         env = os.environ.copy()
         env.update(CHROMIUM_BSU_RL_PROTOCOL="1", CHROMIUM_BSU_RL_STATE_DIR=str(state),
-                   CHROMIUM_BSU_SCORE=str(state / "scores"), CHROMIUM_BSU_DATA=str(data_directory))
+                   CHROMIUM_BSU_SCORE=str(state / "scores"), CHROMIUM_BSU_DATA=str(data_directory),
+                   CHROMIUM_BSU_RL_SYNCHRONOUS="1" if synchronous else "0")
         if video_driver is not None:
             env["SDL_VIDEODRIVER"] = video_driver
         command = [str(binary), "--window", "--vidmode", "1", "--noaudio"]
@@ -138,6 +143,8 @@ class GameClient:
         try:
             self._transport = _JsonProcess(command, env, state / "game.log", timeout)
             self.capabilities = Capabilities.parse(self._transport.call("hello"))
+            if synchronous and not self.capabilities.step:
+                raise ProtocolError("Native build lacks synchronous step; rebuild first")
         except BaseException:
             if self._transport is not None:
                 self._transport.stop()
@@ -152,6 +159,29 @@ class GameClient:
         except (ValueError, KeyError) as exc:
             self.close()
             raise ProtocolError(f"Invalid snapshot: {exc}") from exc
+
+    def step(self, action: Action, *, ticks: int = 1) -> StepResult:
+        """Hold an action for 1..50 full ticks; stop early at single-level end.
+
+        IDLE releases buttons; upstream keyboard accumulation decays, not resets.
+        No seed/reset/reward/headless support yet. Closing and reopening starts anew.
+        """
+        if not isinstance(action, Action):
+            raise ValueError("Use an Action enum member, e.g. Action.RIGHT")
+        if type(ticks) is not int or not 1 <= ticks <= 50:
+            raise ValueError("ticks must be an integer from 1 to 50")
+        if self._transport is None:
+            raise ProtocolError("Game client is closed")
+        if not self.capabilities.step:
+            raise RemoteError("step requires GameClient(synchronous=True)")
+        try:
+            result = StepResult.parse(self._transport.call("step", action=int(action), ticks=ticks))
+            if result.actual_ticks > ticks or (result.actual_ticks < ticks and not result.terminated):
+                raise ValueError("Returned tick count does not match request")
+            return result
+        except (ValueError, KeyError) as exc:
+            self.close()
+            raise ProtocolError(f"Invalid step result: {exc}") from exc
 
     def close(self) -> None:
         transport, self._transport = self._transport, None

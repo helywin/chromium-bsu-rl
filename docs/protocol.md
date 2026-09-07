@@ -1,6 +1,6 @@
 # Live snapshot protocol v1
 
-Stage B only: the game runs in real time and accepts human GUI controls. This is not a deterministic training environment. The protocol does not implement `step`, `reset`, rewards, object IDs, bullets or power-ups yet.
+Default live mode runs in real time and accepts human GUI controls. Opt-in synchronous GUI `step` is now available; see [the command and its limitations](synchronous-step.md). This is not a deterministic training environment. Reset/seed, rewards, object IDs, bullets and power-up snapshots remain unimplemented.
 
 ## Transport
 
@@ -42,3 +42,6 @@ with GameClient() as game:
 Use an editable installation in a source checkout for default binary/data lookup. For a separately installed wheel, pass `binary=Path(...)` and `data_directory=Path(...)`; assets and native build are not bundled in the wheel. No personal directory or course repository is required. `video_driver="x11"` is available for XWayland diagnostics; it is not forced on all users.
 
 Each client has a fresh temporary preference/high-score directory, removed when closed. On failure the exception includes the last 4096 bytes of its game log. stderr goes to a temporary file, not an unread pipe. Public snapshot results are frozen dataclasses with validated numbers and vector lengths and include a `py.typed` marker for IDEs.
+## Incremental capability update
+
+The original live snapshot contract below remains supported. Opt-in synchronous GUI `step` is now available; see [the new command and its limitations](synchronous-step.md). Reset/seed and headless remain unimplemented. Statements below about unsupported step describe the default live mode.

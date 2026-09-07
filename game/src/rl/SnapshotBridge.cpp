@@ -18,6 +18,8 @@ namespace {
 FILE *protocol = NULL;
 std::string pending;
 bool failed = false;
+bool syncMode = false;
+int64_t episodeTick = 0;
 int64_t lastId = 0;
 const size_t maxRequest = 8192;
 const size_t maxResponse = 1024 * 1024;
@@ -90,7 +92,8 @@ json_object *snapshot(float keyboardX, float keyboardY) {
     put(s, "enemies", enemies);
     return s;
 }
-bool process(const std::string &line, float x, float y) {
+bool process(const std::string &line, float &x, float &y,
+             SnapshotBridge::TickFunction tick, void *context) {
     json_tokener *parser = json_tokener_new_ex(16);
     json_tokener_set_flags(parser, JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8);
     json_object *request = json_tokener_parse_ex(parser, line.c_str(), line.size());
@@ -127,21 +130,51 @@ bool process(const std::string &line, float x, float y) {
     bool close = false;
     if(std::strcmp(cmd, "hello") == 0) {
         result = json_object_new_object();
-        put(result, "implementation", json_object_new_string("chromium-bsu-rl/snapshot-v1"));
+        put(result, "implementation", json_object_new_string("chromium-bsu-rl/sync-gui-v1"));
         put(result, "upstream_version", json_object_new_string("0.9.16.1"));
         put(result, "schema_version", json_object_new_int(1));
         put(result, "live_snapshot", json_object_new_boolean(true));
-        put(result, "step", json_object_new_boolean(false));
+        put(result, "step", json_object_new_boolean(syncMode));
         put(result, "reset", json_object_new_boolean(false));
         put(result, "headless", json_object_new_boolean(false));
         put(result, "deterministic", json_object_new_boolean(false));
     } else if(std::strcmp(cmd, "snapshot") == 0) {
         result = snapshot(x, y);
+    } else if(std::strcmp(cmd, "step") == 0 && syncMode && tick) {
+        json_object *actionObject = NULL, *ticksObject = NULL;
+        json_object_object_get_ex(request, "action", &actionObject);
+        json_object_object_get_ex(request, "ticks", &ticksObject);
+        int64_t action = json_object_get_int64(actionObject);
+        int64_t ticks = json_object_get_int64(ticksObject);
+        if(!json_object_is_type(actionObject, json_type_int) || action < 0 || action > 17
+            || !json_object_is_type(ticksObject, json_type_int) || ticks < 1 || ticks > 50) {
+            error(id, "invalid_action", "action must be integer 0..17; ticks must be integer 1..50.");
+        } else if(Global::gameMode != Global::Game) {
+            error(id, "episode_ended", "Single-level episode ended; open a new synchronous client.");
+        } else {
+            // Screen coordinates: up is negative y. No OS key repeat events.
+            const int directions[9][2] = {{0,0},{0,-1},{0,1},{-1,0},{1,0},
+                                         {-1,-1},{1,-1},{-1,1},{1,1}};
+            int actual = 0;
+            for(; actual < ticks && Global::gameMode == Global::Game; ++actual) {
+                if(!tick(directions[action % 9][0], directions[action % 9][1], action >= 9, context)) {
+                    json_object_put(request);
+                    return true;
+                }
+                ++episodeTick;
+            }
+            result = json_object_new_object();
+            put(result, "snapshot", snapshot(x, y));
+            put(result, "actual_ticks", json_object_new_int(actual));
+            put(result, "episode_tick", json_object_new_int64(episodeTick));
+            put(result, "simulated_seconds", json_object_new_double(episodeTick * 0.02));
+            put(result, "terminated", json_object_new_boolean(Global::gameMode != Global::Game));
+        }
     } else if(std::strcmp(cmd, "close") == 0) {
         result = json_object_new_object();
         close = true;
     } else {
-        error(id, "unsupported_command", "Implemented commands: hello, snapshot, close.");
+        error(id, "unsupported_command", "Use hello/snapshot/close; step requires synchronous mode.");
     }
     if(result) {
         json_object *response = envelope(id, true);
@@ -156,6 +189,8 @@ bool process(const std::string &line, float x, float y) {
 bool SnapshotBridge::initialize() {
     const char *enabled = std::getenv("CHROMIUM_BSU_RL_PROTOCOL");
     if(!enabled || std::strcmp(enabled, "1") != 0) return true;
+    const char *control = std::getenv("CHROMIUM_BSU_RL_SYNCHRONOUS");
+    syncMode = control && std::strcmp(control, "1") == 0;
     const char *state = std::getenv("CHROMIUM_BSU_RL_STATE_DIR");
     if(!state || !*state || std::strlen(state) >= 180) {
         std::fprintf(stderr, "Protocol mode requires an isolated short state directory.\n");
@@ -172,7 +207,9 @@ bool SnapshotBridge::initialize() {
     return flags >= 0 && fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) >= 0;
 }
 
-bool SnapshotBridge::pump(float x, float y) {
+bool SnapshotBridge::synchronous() { return syncMode; }
+
+bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context) {
     if(!protocol) return false;
     char buffer[4096];
     ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer));
@@ -185,7 +222,7 @@ bool SnapshotBridge::pump(float x, float y) {
         if(newline > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
         std::string line = pending.substr(0, newline);
         pending.erase(0, newline + 1);
-        if(process(line, x, y) || failed) return true;
+        if(process(line, x, y, tick, context) || failed) return true;
     }
     if(pending.size() > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
     return failed;

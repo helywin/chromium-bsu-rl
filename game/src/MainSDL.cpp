@@ -1,5 +1,5 @@
 /*
- * RL local change 2026-09-07: service read-only requests at main-loop boundaries.
+ * RL local change 2026-09-07: live snapshots and opt-in synchronous GUI ticks.
  * Copyright (c) 2000 Mark B. Allan. All rights reserved.
  *
  * "Chromium B.S.U." is free software; you can redistribute
@@ -152,6 +152,35 @@ MainSDL::~MainSDL()
 
 //----------------------------------------------------------
 #include "rl/SnapshotBridge.h"
+bool MainSDL::rlTick(int dx, int dy, bool fireRequested)
+{
+	SDL_Event event;
+	while(SDL_PollEvent(&event))
+		if(event.type == SDL_QUIT) return false;
+	Global *game = Global::getInstance();
+	// Direction changes create one press edge; repeated actions remain held.
+	if(dx && dx != rlDirectionX) key_speed_x += dx * 5.0f;
+	if(dy && dy != rlDirectionY) key_speed_y += dy * 5.0f;
+	rlDirectionX = dx;
+	rlDirectionY = dy;
+	key_speed_x += dx * (2.0 + std::fabs(key_speed_x) * 0.4);
+	key_speed_y += dy * (2.0 + std::fabs(key_speed_y) * 0.4);
+	key_speed_x *= 0.7f;
+	key_speed_y *= 0.7f;
+	game->hero->moveEvent(static_cast<int>(key_speed_x), static_cast<int>(key_speed_y));
+	game->hero->holdFire(fireRequested);
+	game->speedAdj = 1.0f;
+	// Upstream drawGL also mutates gameplay. Exactly once per tick, never at idle.
+	game->mainGL->drawGL();
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_GL_SwapWindow(window);
+#else
+	SDL_GL_SwapBuffers();
+#endif
+	++game->frame;
+	return true;
+}
+
 bool MainSDL::run()
 {
 	Global	*game = Global::getInstance();
@@ -162,13 +191,30 @@ bool MainSDL::run()
 	key_speed_x  = key_speed_y = 0.0;
 	int done = 0;
 	int frames;
+	if(SnapshotBridge::synchronous()) {
+		// createGame() already initialized a fresh first level, without a menu tick.
+		game->gameMode = Global::Game;
+		game->speedAdj = 1.0f;
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_GL_SetSwapInterval(0); // Best effort only; rendering is still required.
+#endif
+	}
 
 	//-- enter main loop...
 	frames = 0;
 	while( !done )
 	{
 		SDL_Event event;
-		if(SnapshotBridge::pump(key_speed_x, key_speed_y)) break;
+		if(SnapshotBridge::pump(key_speed_x, key_speed_y,
+			[](int dx, int dy, bool fire, void *self) {
+				return static_cast<MainSDL *>(self)->rlTick(dx, dy, fire);
+			}, this)) break;
+		if(SnapshotBridge::synchronous()) {
+			// Window close remains responsive; physical input cannot affect RL state.
+			while(SDL_PollEvent(&event)) if(event.type == SDL_QUIT) done = 1;
+			SDL_Delay(2); // Only idle protocol polling, not simulated time.
+			continue;
+		}
 
 		//-- Draw our scene...
 		game->mainGL->drawGL();
