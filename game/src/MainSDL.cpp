@@ -196,6 +196,13 @@ bool MainSDL::rlTick(int dx, int dy, bool fireRequested)
 	return !SnapshotBridge::automaticRendering() || rlRender();
 }
 
+void MainSDL::rlReset(unsigned int seed)
+{
+    Global::getInstance()->resetForRL(seed);
+    key_speed_x = key_speed_y = 0.0f;
+    rlDirectionX = rlDirectionY = 0;
+}
+
 bool MainSDL::rlRender()
 {
 	SDL_Event event;
@@ -242,6 +249,8 @@ bool MainSDL::run()
 				return static_cast<MainSDL *>(self)->rlTick(dx, dy, fire);
 			}, this, [](void *self) {
 				return static_cast<MainSDL *>(self)->rlRender();
+			}, [](unsigned int seed, void *self) {
+				static_cast<MainSDL *>(self)->rlReset(seed);
 			})) break;
 		if(SnapshotBridge::synchronous()) {
 			// Window close remains responsive; physical input cannot affect RL state.

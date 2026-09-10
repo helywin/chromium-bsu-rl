@@ -2,7 +2,7 @@
 
 A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
 
-**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. Still display/GL-dependent, not truly headless. Reset/seed, Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
+**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. Still display/GL-dependent, not truly headless. Seeded first-level reset is available; Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
 
 ## 项目目标
 
@@ -75,11 +75,11 @@ with GameClient(synchronous=True) as game:
 
 每个内部tick采用原版50fps参考尺度（`speedAdj=1`，标称0.02秒），执行完整逻辑更新；绘图可以独立关闭。没有step就不推进；连续相同方向视为保持按下，IDLE为释放并衰减，不是瞬间清零。每条指令最多50tick，到死亡或本关完成立即停下。
 
-这是**仅第一关的同步原型**，不是完整Gym环境。仍需要显示服务/GL，无公开seed/reset、奖励或整局任务。重新创建客户端才能开新一局。
+这是**仅第一关的同步原型**，不是完整Gym环境。仍需要显示服务/GL，尚无奖励或整局任务。同步客户端现在可调用`game.reset(7)`，在原进程内开启种子为7的新局；返回初始Snapshot。种子重复性限定于相同构建、平台与配置，详见[验证记录](docs/validation/seeded-reset.md)。
 
 使用 `GameClient(synchronous=True, render_each_step=False)` 跳过逐步绘图，调用 `game.render()` 查看当前状态。敌方子弹位于 `state.enemy_bullets`，每颗含稳定ID、类型、位置、每步位移、贴图半尺寸和原始伤害。可以运行 `<venv>/bin/python examples/watch_enemy_bullets.py` 查看。**贴图尺寸不是碰撞范围，速度不是每秒单位。** 详见[当前绘图与子弹契约](docs/render-free-stepping.md)。
 
-新版绘图不再消耗游戏逻辑的随机数；行为版本为split-render-v2，快照schema为2。9条对照轨迹、9563个快照绘图开关一致，9项测试通过。这里不承诺与旧版同seed轨迹一致；单次采样基准约22200tick/s（不逐步绘图），不是网络训练性能保证。
+新版绘图不再消耗游戏逻辑的随机数；绘图分离验证时行为版本为split-render-v2（当前为seeded-reset-v3），快照schema为2。当时9条对照轨迹、9563个快照绘图开关一致，9项测试通过。这里不承诺与旧版同seed轨迹一致；单次采样基准约22200tick/s（不逐步绘图），不是网络训练性能保证。
 
 ## 获取仓库
 

@@ -1,6 +1,6 @@
 # Process protocol v1, snapshot schema v2
 
-Default live mode runs in real time and accepts human GUI controls. Synchronous mode supports `step` and independent `render`; enemy bullet state is exported in both modes. See [render-free stepping and bullet semantics](render-free-stepping.md). Public reset/seed, rewards, enemy aircraft IDs and power-up snapshots remain unimplemented.
+Default live mode runs in real time and accepts human GUI controls. Synchronous mode supports `step` and independent `render`; enemy bullet state is exported in both modes. See [render-free stepping and bullet semantics](render-free-stepping.md). Synchronous `reset(seed)` is available. Rewards, enemy aircraft IDs and power-up snapshots remain unimplemented.
 
 ## Transport
 
@@ -27,7 +27,7 @@ Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `s
 
 Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has process-local spawn IDs and typed fields documented in [the bullet contract](render-free-stepping.md#enemy-bullet-contract). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Collision events and enemy aircraft IDs are later work. Menu observations are introspection only, not transitions suitable for training.
 
-Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/headless/deterministic remain false. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
+Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/seed are true in the SDL synchronous runtime. headless/deterministic remain false; seeded repeatability is scoped below. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
 
 ## Python API
 
@@ -45,3 +45,38 @@ Each client has a fresh temporary preference/high-score directory, removed when 
 ## Compatibility
 
 The new Python parser accepts old schema1 but old native capabilities report no enemy-bullet support. For bullet consumers require `game.capabilities.enemy_bullets`. Old clients rejecting schema2 must be updated with the native build. Protocol envelope version remains1; schema and behavior versioning are separate.
+
+## Seeded first-level reset (seeded-reset-v3)
+
+Request: `{"protocol_version":1,"request_id":2,"command":"reset","seed":7}`.
+Success `result` is a schema2 snapshot directly (not a step wrapper). Requires
+synchronous mode; seed is a required JSON integer in 0..4294967295, excluding
+booleans, floats, strings and null. Invalid requests do not mutate game state.
+
+The game thread rebuilds episode-owned objects within the same SDL/GL context
+and process. It regenerates the random tables using `srand(seed)` and resets
+keyboard accumulators/direction edges, global frame counters, first-level state,
+player resources/weapon state, scheduled and active objects, and bullet IDs.
+`episode_tick` is zero after reset. IDs are unique within an episode, not across
+resets. A successful reset returns at frame zero without simulation advancement;
+render explicitly when an immediately refreshed window is needed.
+
+Reset is allowed both during play and after terminal. Subsequent steps use a
+fresh episode; the caller must preserve any previous terminal observation first.
+The snapshot mode is game, unpaused, level 1, position (0,-3,25), keyboard (0,0),
+score 0, lives counter 4, damage -500, shields 500 and empty ammo stock.
+No transition or reward is manufactured by reset.
+
+Same seed/actions/build/platform/configuration repeated raw-state traces match
+in the native tests, including render on/off and separate processes. This is not
+a cross-platform or cross-version bitwise guarantee: libc RNG and floating-point
+behavior are platform-dependent. Different seed integers are not guaranteed to
+produce unique sequences (e.g. libc may map seeds 0 and 1 identically). Keep the
+broad `deterministic` capability false rather than promising universal identity.
+Startup without an explicit reset retains the legacy time-based initialization;
+repeatable runs must call reset first. Synchronous tests use no-audio X11/GL;
+this is not truly headless or multi-level support.
+
+Python standalone client: `GameClient.reset(seed) -> Snapshot`. The independent
+learning project implements its own transport rather than importing this client.
+See [native reset validation](validation/seeded-reset.md).

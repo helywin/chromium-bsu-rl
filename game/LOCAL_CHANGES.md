@@ -35,3 +35,11 @@
 - HeroAircraft::holdFire avoids resetting shot cooldown for repeated held actions. Repeated direction edges are likewise suppressed; release preserves keyboard decay.
 - Original drawGL runs exactly once per tick because render paths still mutate gameplay/RNG. This is not yet separated rendering or headless acceleration. No seed/reset or full-game task is claimed.
 - Python adds Action/StepResult and an optional synchronous constructor; snapshot schema1 remains unchanged. See docs/synchronous-step.md for explicit behavioral differences, termination and evidence.
+
+## 2026-09-10: seeded-reset-v3
+
+- Add synchronous `reset(seed)` with strict uint32 validation and initial schema2 snapshot response.
+- Rebuild episode-owned game objects while retaining SDL window/GL context and process; reset native RNG tables, global counters and keyboard state.
+- Reconstruct constructor-only state including score thresholds, weapon state, object pools, visual objects and per-episode bullet identity counters.
+- Keep live mode behavior, protocol version 1 and snapshot schema 2; advertise reset/seed capability only where implemented. Universal determinism remains unclaimed.
+- Add standalone client method and native repeated-seed/terminal/invalid-input/resource checks. See `docs/validation/seeded-reset.md`.

@@ -38,6 +38,7 @@ private:
 	bool rlTick(int dx, int dy, bool fire);
 	void updateDrawableViewport();
 	bool rlRender();
+	void rlReset(unsigned int seed);
 	int  rlDirectionX = 0, rlDirectionY = 0;
 	void activation(bool shown, bool mouse, bool input, bool gain);
 	void keyDown(SDL_Event *event);

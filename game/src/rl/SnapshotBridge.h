@@ -9,9 +9,10 @@ bool synchronous();
 bool automaticRendering();
 typedef bool (*TickFunction)(int dx, int dy, bool fire, void *context);
 typedef bool (*RenderFunction)(void *context);
+typedef void (*ResetFunction)(unsigned int seed, void *context);
 // Called only on the game thread between complete loop iterations.
 // True means close requested, stdin ended, or transport failed.
 bool pump(float &keyboardX, float &keyboardY, TickFunction tick = 0, void *context = 0,
-          RenderFunction render = 0);
+          RenderFunction render = 0, ResetFunction reset = 0);
 }
 #endif

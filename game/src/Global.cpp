@@ -137,6 +137,31 @@ void Global::destroy()
 }
 
 //----------------------------------------------------------
+// Reconstruct episode-owned objects while retaining the SDL/GL context.
+// A newGame() alone leaves constructor-only state (e.g. scoreTarget, pools,
+// bullet identities and visual phases) behind. Only synchronous RL calls this.
+void Global::resetForRL(unsigned int seed)
+{
+    deleteGame();
+    if(eventFile) { fclose(eventFile); eventFile = 0; }
+    frame = gameFrame = heroDeath = heroSuccess = 0;
+    gameLevel = 1;
+    gameSpeed = 0.5f;
+    speedAdj = 1.0f;
+    fps = 50.0f;
+    scrollSpeed = -0.045f;
+    mouseActive = false;
+    cursorPos[0] = cursorPos[1] = 0.0f;
+    cursorPos[2] = HERO_Z;
+    tipShipPast = tipSuperShield = 0;
+    game_pause = game_quit = false;
+    srand(seed);
+    generateRandom();
+    createGame();
+    gameMode = Game;
+    speedAdj = 1.0f;
+}
+
 void Global::newGame()
 {
 	Config *config = Config::instance();

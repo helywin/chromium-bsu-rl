@@ -200,6 +200,23 @@ class GameClient:
             self.close()
             raise ProtocolError(f"Invalid step result: {exc}") from exc
 
+    def reset(self, seed: int) -> Snapshot:
+        """Rebuild a first-level episode in the same process using a uint32 seed.
+
+        Repeatability is scoped to the same native build/configuration/platform.
+        """
+        if type(seed) is not int or not 0 <= seed <= 4294967295:
+            raise ValueError("seed must be an integer from 0 to 4294967295")
+        if self._transport is None:
+            raise ProtocolError("Game client is closed")
+        if not self.capabilities.reset:
+            raise RemoteError("This native runtime does not support synchronous reset")
+        try:
+            return Snapshot.parse(self._transport.call("reset", seed=seed))
+        except (ValueError, KeyError) as exc:
+            self.close()
+            raise ProtocolError(f"Invalid reset snapshot: {exc}") from exc
+
     def close(self) -> None:
         transport, self._transport = self._transport, None
         if transport is not None:

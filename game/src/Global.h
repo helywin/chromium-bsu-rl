@@ -41,6 +41,7 @@ public:
 	static void		destroy();
 
 	void		newGame();
+	void        resetForRL(unsigned int seed);
 	void		gotoNextLevel();
 
 	static void	generateRandom(bool r = true);

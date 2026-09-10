@@ -110,7 +110,7 @@ json_object *snapshot(float keyboardX, float keyboardY) {
     return s;
 }
 bool process(const std::string &line, float &x, float &y,
-             SnapshotBridge::TickFunction tick, void *context, SnapshotBridge::RenderFunction render) {
+             SnapshotBridge::TickFunction tick, void *context, SnapshotBridge::RenderFunction render, SnapshotBridge::ResetFunction reset) {
     json_tokener *parser = json_tokener_new_ex(16);
     json_tokener_set_flags(parser, JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8);
     json_object *request = json_tokener_parse_ex(parser, line.c_str(), line.size());
@@ -147,7 +147,7 @@ bool process(const std::string &line, float &x, float &y,
     bool close = false;
     if(std::strcmp(cmd, "hello") == 0) {
         result = json_object_new_object();
-        put(result, "implementation", json_object_new_string("chromium-bsu-rl/split-render-v2"));
+        put(result, "implementation", json_object_new_string("chromium-bsu-rl/seeded-reset-v3"));
         put(result, "render", json_object_new_boolean(syncMode));
         put(result, "render_free_steps", json_object_new_boolean(syncMode));
         put(result, "enemy_bullets", json_object_new_boolean(true));
@@ -155,9 +155,21 @@ bool process(const std::string &line, float &x, float &y,
         put(result, "schema_version", json_object_new_int(2));
         put(result, "live_snapshot", json_object_new_boolean(true));
         put(result, "step", json_object_new_boolean(syncMode));
-        put(result, "reset", json_object_new_boolean(false));
+        put(result, "reset", json_object_new_boolean(syncMode && reset));
+        put(result, "seed", json_object_new_boolean(syncMode && reset));
         put(result, "headless", json_object_new_boolean(false));
         put(result, "deterministic", json_object_new_boolean(false));
+    } else if(std::strcmp(cmd, "reset") == 0 && syncMode && reset) {
+        json_object *seedObject = NULL;
+        json_object_object_get_ex(request, "seed", &seedObject);
+        int64_t seed = json_object_get_int64(seedObject);
+        if(!json_object_is_type(seedObject, json_type_int) || seed < 0 || seed > 4294967295LL) {
+            error(id, "invalid_seed", "seed must be an integer in 0..4294967295.");
+        } else {
+            reset(static_cast<unsigned int>(seed), context);
+            episodeTick = 0;
+            result = snapshot(x, y);
+        }
     } else if(std::strcmp(cmd, "snapshot") == 0) {
         result = snapshot(x, y);
     } else if(std::strcmp(cmd, "render") == 0 && syncMode && render) {
@@ -173,7 +185,7 @@ bool process(const std::string &line, float &x, float &y,
             || !json_object_is_type(ticksObject, json_type_int) || ticks < 1 || ticks > 50) {
             error(id, "invalid_action", "action must be integer 0..17; ticks must be integer 1..50.");
         } else if(Global::gameMode != Global::Game) {
-            error(id, "episode_ended", "Single-level episode ended; open a new synchronous client.");
+            error(id, "episode_ended", "Single-level episode ended; call reset with a seed.");
         } else {
             // Screen coordinates: up is negative y. No OS key repeat events.
             const int directions[9][2] = {{0,0},{0,-1},{0,1},{-1,0},{1,0},
@@ -197,7 +209,7 @@ bool process(const std::string &line, float &x, float &y,
         result = json_object_new_object();
         close = true;
     } else {
-        error(id, "unsupported_command", "Use hello/snapshot/close; step requires synchronous mode.");
+        error(id, "unsupported_command", "Use hello/snapshot/close; step/render/reset require synchronous mode.");
     }
     if(result) {
         json_object *response = envelope(id, true);
@@ -235,7 +247,7 @@ bool SnapshotBridge::initialize() {
 bool SnapshotBridge::synchronous() { return syncMode; }
 bool SnapshotBridge::automaticRendering() { return drawEachTick; }
 
-bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context, RenderFunction render) {
+bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context, RenderFunction render, ResetFunction reset) {
     if(!protocol) return false;
     char buffer[4096];
     ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer));
@@ -248,7 +260,7 @@ bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context, 
         if(newline > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
         std::string line = pending.substr(0, newline);
         pending.erase(0, newline + 1);
-        if(process(line, x, y, tick, context, render) || failed) return true;
+        if(process(line, x, y, tick, context, render, reset) || failed) return true;
     }
     if(pending.size() > maxRequest) { error(0, "request_too_large", "Request exceeds 8192 bytes."); return true; }
     return failed;
