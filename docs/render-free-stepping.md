@@ -24,7 +24,7 @@ MainGL::advanceSimulationTick runs core gameplay, background scrolling/recycling
 
 This is a **versioned random-stream behavior change**: older combined rendering consumed gameplay random numbers. Draw/skip equivalence is tested within split-render-v2, not asserted between v1 and v2. Background recycling and HUD/particle rendering order can also differ visually from the old combined path. No existing checkpoint compatibility guarantee is provided.
 
-hello implementation is chromium-bsu-rl/split-render-v2; envelope protocol_version remains1, snapshot schema_version is2. In synchronous mode render and render_free_steps capabilities are true; enemy_bullets is true in both modes. reset/headless/deterministic remain false. Old Python clients that only accept schema1 must be updated; the new parser still accepts old schema1, but its enemy_bullets capability is false for old native builds.
+hello implementation is now chromium-bsu-rl/seeded-reset-v3 (render separation was introduced in split-render-v2); envelope protocol_version remains1, snapshot schema_version is2. In synchronous mode render and render_free_steps capabilities are true; enemy_bullets is true in both modes. reset/seed are now available in synchronous mode; headless/deterministic remain false. See [seeded reset](protocol.md#seeded-first-level-reset-seeded-reset-v3). Old Python clients that only accept schema1 must be updated; the new parser still accepts old schema1, but its enemy_bullets capability is false for old native builds.
 
 ## Enemy bullet contract
 
@@ -32,7 +32,7 @@ enemy_bullets is an immutable Python tuple of EnemyBulletState, copied from the 
 
 | Field | Meaning |
 |---|---|
-| id | Monotonic identity assigned at spawn; survives while that bullet is active. Reusing a pooled allocation assigns a new ID. IDs are process-local and are not pointers. |
+| id | Monotonic identity assigned at spawn; survives while that bullet is active. Reusing a pooled allocation assigns a new ID. IDs are episode-local (restart after reset) and are not pointers. |
 | type | EnemyAmmo list type0..4, not an enemy aircraft type. |
 | position | Current world x/y/z; x right, y up. |
 | velocity_per_tick | Stored ActiveAmmo::vel. updatePos adds it directly each internal tick. Upstream speedAdj is baked into this value at spawn; do not multiply it again. Not a velocity per second. |
@@ -58,7 +58,7 @@ RUN_CHROMIUM_GUI_TESTS=1 <venv>/bin/python -m unittest discover -s tests -p 'tes
 <venv>/bin/python examples/watch_enemy_bullets.py
 ~~~
 
-The preload only pins upstream's initial time seed for native regression/benchmarks. It is not loaded by normal launchers and is not a public seed/reset feature. The equivalence test covers three fixed epochs × three action patterns, all exported fields including enemy bullets/RNG, repeated redraw, short idle waits and terminal redraw. It does not independently fingerprint every private field or exercise every full-game transition.
+The preload only pins upstream's initial time seed for native regression/benchmarks. It is not loaded by normal launchers. This historical preload check predates the public reset(seed) API; new seeded-reset checks use that API. The equivalence test covers three fixed epochs × three action patterns, all exported fields including enemy bullets/RNG, repeated redraw, short idle waits and terminal redraw. It does not independently fingerprint every private field or exercise every full-game transition.
 
 The sampling benchmark is one environment at a time, three fixed initial seeds per mode, fixed FIRE action and50 internal ticks/request. It excludes startup, reports actual executed ticks, and includes JSON transport/Python parsing; no network inference or optimizer updates. Results depend on display/driver/hardware and are not a performance guarantee.
 

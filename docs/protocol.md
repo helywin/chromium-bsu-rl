@@ -8,7 +8,7 @@ Linux/POSIX subprocess, one UTF-8 JSON object per line. Set `CHROMIUM_BSU_RL_PRO
 
 Requests have `protocol_version: 1`, strictly increasing positive int32 `request_id`, and string `command`. One request in flight per client. Maximum request 8192 bytes and response 1 MiB; excessive output closes the connection rather than silently truncating game data. JSON nesting is bounded. The native pump services bounded input on the main game thread, so incomplete requests do not block GUI events.
 
-Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `step` and `render`. Unsupported commands return `ok: false` with `error.code/message`; successful messages contain `ok: true` and `result`. Response version and request ID must match. The client never retries commands automatically. EOF closes the owned game; timeout/malformed response reaps only the client's own subprocess. Close is idempotent on the Python side.
+Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `step`, `render` and `reset`. Unsupported commands return `ok: false` with `error.code/message`; successful messages contain `ok: true` and `result`. Response version and request ID must match. The client never retries commands automatically. EOF closes the owned game; timeout/malformed response reaps only the client's own subprocess. Close is idempotent on the Python side.
 
 ## Snapshot fields
 
@@ -25,7 +25,7 @@ Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `s
 | `enemies` | Const traversal of EnemyFleet, does not modify the shared currentShip cursor |
 | enemy `type/position/raw_velocity/size/damage` | Raw EnemyAircraft fields. raw_velocity is not guaranteed to describe all special enemy movement |
 
-Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has process-local spawn IDs and typed fields documented in [the bullet contract](render-free-stepping.md#enemy-bullet-contract). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Collision events and enemy aircraft IDs are later work. Menu observations are introspection only, not transitions suitable for training.
+Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has episode-local spawn IDs and typed fields documented in [the bullet contract](render-free-stepping.md#enemy-bullet-contract). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Collision events and enemy aircraft IDs are later work. Menu observations are introspection only, not transitions suitable for training.
 
 Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/seed are true in the SDL synchronous runtime. headless/deterministic remain false; seeded repeatability is scoped below. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
 
