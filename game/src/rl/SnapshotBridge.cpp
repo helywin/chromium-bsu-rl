@@ -14,6 +14,7 @@
 #include <cstring>
 #include <string>
 #include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 
 namespace {
@@ -21,6 +22,7 @@ FILE *protocol = NULL;
 std::string pending;
 bool failed = false;
 bool syncMode = false;
+bool headlessMode = false;
 bool drawEachTick = true;
 int64_t episodeTick = 0;
 int64_t lastId = 0;
@@ -164,7 +166,7 @@ bool process(const std::string &line, float &x, float &y,
     if(std::strcmp(cmd, "hello") == 0) {
         result = json_object_new_object();
         put(result, "implementation", json_object_new_string("chromium-bsu-rl/seeded-reset-v3"));
-        put(result, "render", json_object_new_boolean(syncMode));
+        put(result, "render", json_object_new_boolean(syncMode && !headlessMode));
         put(result, "render_free_steps", json_object_new_boolean(syncMode));
         put(result, "enemy_bullets", json_object_new_boolean(true));
         put(result, "powerups", json_object_new_boolean(true));
@@ -174,7 +176,7 @@ bool process(const std::string &line, float &x, float &y,
         put(result, "step", json_object_new_boolean(syncMode));
         put(result, "reset", json_object_new_boolean(syncMode && reset));
         put(result, "seed", json_object_new_boolean(syncMode && reset));
-        put(result, "headless", json_object_new_boolean(false));
+        put(result, "headless", json_object_new_boolean(headlessMode));
         put(result, "deterministic", json_object_new_boolean(false));
     } else if(std::strcmp(cmd, "reset") == 0 && syncMode && reset) {
         json_object *seedObject = NULL;
@@ -189,7 +191,7 @@ bool process(const std::string &line, float &x, float &y,
         }
     } else if(std::strcmp(cmd, "snapshot") == 0) {
         result = snapshot(x, y);
-    } else if(std::strcmp(cmd, "render") == 0 && syncMode && render) {
+    } else if(std::strcmp(cmd, "render") == 0 && syncMode && render && !headlessMode) {
         if(!render(context)) { json_object_put(request); return true; }
         result = snapshot(x, y);
     } else if(std::strcmp(cmd, "step") == 0 && syncMode && tick) {
@@ -243,8 +245,14 @@ bool SnapshotBridge::initialize() {
     if(!enabled || std::strcmp(enabled, "1") != 0) return true;
     const char *control = std::getenv("CHROMIUM_BSU_RL_SYNCHRONOUS");
     syncMode = control && std::strcmp(control, "1") == 0;
+    const char *headless = std::getenv("CHROMIUM_BSU_RL_HEADLESS");
+    headlessMode = headless && std::strcmp(headless, "1") == 0;
+    if(headlessMode && !syncMode) {
+        std::fprintf(stderr, "Headless mode requires synchronous control.\n");
+        return false;
+    }
     const char *drawing = std::getenv("CHROMIUM_BSU_RL_RENDER");
-    drawEachTick = !syncMode || !drawing || std::strcmp(drawing, "0") != 0;
+    drawEachTick = !headlessMode && (!syncMode || !drawing || std::strcmp(drawing, "0") != 0);
     const char *state = std::getenv("CHROMIUM_BSU_RL_STATE_DIR");
     if(!state || !*state || std::strlen(state) >= 180) {
         std::fprintf(stderr, "Protocol mode requires an isolated short state directory.\n");
@@ -262,6 +270,13 @@ bool SnapshotBridge::initialize() {
 }
 
 bool SnapshotBridge::synchronous() { return syncMode; }
+bool SnapshotBridge::headless() { return headlessMode; }
+void SnapshotBridge::waitForInput() {
+    if(pending.find('\n') != std::string::npos) return;
+    struct pollfd input = {STDIN_FILENO, POLLIN, 0};
+    // Wake immediately on requests/EOF; retain periodic GUI event processing.
+    poll(&input, 1, headlessMode ? 1000 : 10);
+}
 bool SnapshotBridge::automaticRendering() { return drawEachTick; }
 
 bool SnapshotBridge::pump(float &x, float &y, TickFunction tick, void *context, RenderFunction render, ResetFunction reset) {

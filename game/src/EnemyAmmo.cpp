@@ -11,6 +11,7 @@
 #endif
 
 #include "EnemyAmmo.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -101,6 +102,7 @@ EnemyAmmo::~EnemyAmmo()
 //----------------------------------------------------------
 void EnemyAmmo::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	char filename[256];
 	for(int i = 0; i < NUM_ENEMY_AMMO_TYPES; i++)
 	{
@@ -113,6 +115,7 @@ void EnemyAmmo::loadTextures()
 //----------------------------------------------------------
 void EnemyAmmo::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	for(int i = 0; i < NUM_ENEMY_AMMO_TYPES; i++)
 	{
 		glDeleteTextures(1, &ammoTex[i]);

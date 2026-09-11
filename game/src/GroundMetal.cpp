@@ -11,6 +11,7 @@
 #endif
 
 #include "GroundMetal.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cmath>
 
@@ -59,6 +60,7 @@ GroundMetal::~GroundMetal()
 //----------------------------------------------------------
 void GroundMetal::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	Config	*config = Config::instance();
 	float tbc[4] = { 0.2, 0.2, 0.2, 1.0 };
 #ifdef GL_CLAMP_TO_EDGE
@@ -90,6 +92,7 @@ void GroundMetal::loadTextures()
 //----------------------------------------------------------
 void GroundMetal::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	glDeleteTextures(1, &tex[Base]);
 	glDeleteTextures(1, &tex[Blip]);
 	tex[Base] = 0;

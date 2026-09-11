@@ -43,6 +43,7 @@
 #include "HeroAircraft.h"
 #include "Audio.h"
 #include "MainGL.h"
+#include "rl/SnapshotBridge.h"
 
 
 //====================================================================
@@ -56,6 +57,17 @@ MainSDL::MainSDL(int argc, char **argv)
 	xjoy = yjoy = xjNow = yjNow = 0;
 	adjCount = 0;
 	key_speed_x = key_speed_y = 0;
+
+    if(SnapshotBridge::headless()) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+        window = NULL;
+        context = NULL;
+#endif
+        joystick = NULL;
+        if(SDL_Init(0) < 0) exit(1);
+        game->createGame();
+        return;
+    }
 
 	Uint32 initOpts;
 
@@ -176,7 +188,7 @@ void MainSDL::updateDrawableViewport()
 bool MainSDL::rlTick(int dx, int dy, bool fireRequested)
 {
 	SDL_Event event;
-	while(SDL_PollEvent(&event))
+	while(!SnapshotBridge::headless() && SDL_PollEvent(&event))
 		if(event.type == SDL_QUIT) return false;
 	Global *game = Global::getInstance();
 	// Direction changes create one press edge; repeated actions remain held.
@@ -205,8 +217,9 @@ void MainSDL::rlReset(unsigned int seed)
 
 bool MainSDL::rlRender()
 {
+    if(SnapshotBridge::headless()) return false;
 	SDL_Event event;
-	while(SDL_PollEvent(&event)) if(event.type == SDL_QUIT) return false;
+	while(!SnapshotBridge::headless() && SDL_PollEvent(&event)) if(event.type == SDL_QUIT) return false;
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_ShowWindow(window);
 #endif
@@ -235,7 +248,7 @@ bool MainSDL::run()
 		game->gameMode = Global::Game;
 		game->speedAdj = 1.0f;
 #if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_GL_SetSwapInterval(0); // Best effort only; rendering is still required.
+		if(!SnapshotBridge::headless()) SDL_GL_SetSwapInterval(0); // Best effort only; rendering is still required.
 #endif
 	}
 
@@ -255,7 +268,7 @@ bool MainSDL::run()
 		if(SnapshotBridge::synchronous()) {
 			// Window close remains responsive; physical input cannot affect RL state.
 			bool redraw = false;
-			while(SDL_PollEvent(&event)) {
+			while(!SnapshotBridge::headless() && SDL_PollEvent(&event)) {
 				if(event.type == SDL_QUIT) done = 1;
 #if SDL_VERSION_ATLEAST(2,0,0)
 				if(event.type == SDL_WINDOWEVENT &&
@@ -265,7 +278,7 @@ bool MainSDL::run()
 			}
 			if(!done && redraw && SnapshotBridge::automaticRendering())
 				if(!rlRender()) done = 1;
-			SDL_Delay(2); // Only idle protocol polling, not simulated time.
+			SnapshotBridge::waitForInput();
 			continue;
 		}
 

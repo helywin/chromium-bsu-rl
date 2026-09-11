@@ -11,6 +11,7 @@
 #endif
 
 #include "HeroAircraft.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -77,6 +78,7 @@ HeroAircraft::~HeroAircraft()
 //----------------------------------------------------------
 void HeroAircraft::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	heroTex = Image::load(dataLoc("png/hero.png"));
 	bombTex = Image::load(dataLoc("png/superBomb.png"));
 }
@@ -84,6 +86,7 @@ void HeroAircraft::loadTextures()
 //----------------------------------------------------------
 void HeroAircraft::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	glDeleteTextures(1, &heroTex);
 	glDeleteTextures(1, &bombTex);
 	heroTex = 0;

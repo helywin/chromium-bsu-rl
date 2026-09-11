@@ -13,6 +13,7 @@
 #include "gettext.h"
 
 #include "StatusDisplay.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -72,6 +73,7 @@ StatusDisplay::~StatusDisplay()
 //----------------------------------------------------------
 void StatusDisplay::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	int i;
 	char	filename[128];
 #ifdef GL_CLAMP_TO_EDGE
@@ -101,6 +103,7 @@ void StatusDisplay::loadTextures()
 //----------------------------------------------------------
 void StatusDisplay::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	int i;
 	glDeleteTextures(1, &statTex);
 	glDeleteTextures(1, &shldTex);

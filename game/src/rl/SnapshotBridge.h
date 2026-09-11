@@ -6,6 +6,8 @@ namespace SnapshotBridge {
 // Opt-in via CHROMIUM_BSU_RL_PROTOCOL=1. Linux/POSIX only in this stage.
 bool initialize();
 bool synchronous();
+bool headless();
+void waitForInput();
 bool automaticRendering();
 typedef bool (*TickFunction)(int dx, int dy, bool fire, void *context);
 typedef bool (*RenderFunction)(void *context);

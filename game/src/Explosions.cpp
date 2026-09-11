@@ -6,6 +6,7 @@
  * "Clarified Artistic License"
  */
 #include "Explosions.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdlib>
 
@@ -161,6 +162,7 @@ Explosions::~Explosions()
 //----------------------------------------------------------
 void	Explosions::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	tex[EnemyDestroyed]	= Image::load(dataLoc("png/enemyExplo.png"), IMG_NOMIPMAPS, IMG_ALPHA, GL_CLAMP, GL_NEAREST, GL_LINEAR);
 	tex[EnemyDamage]	= tex[EnemyDestroyed];
 	tex[EnemyAmmo00]	= Image::load(dataLoc("png/enemyAmmoExplo00.png"));
@@ -186,6 +188,7 @@ void	Explosions::loadTextures()
 //----------------------------------------------------------
 void	Explosions::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	for(int i = 0; i < (int)NumExploTypes; i++)
 	{
 		glDeleteTextures(1, &tex[i]);

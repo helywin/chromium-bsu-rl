@@ -2,7 +2,7 @@
 
 A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
 
-**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. Still display/GL-dependent, not truly headless. Seeded first-level reset is available; Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
+**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. True no-display mode is available with `GameClient(synchronous=True, render_each_step=False, headless=True)`; ordinary GUI mode remains display/GL-dependent. Seeded first-level reset is available; Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
 
 ## 项目目标
 
@@ -26,7 +26,7 @@ bash scripts/run_gui.sh
 
 请通过启动脚本运行：它使用640×480窗口、关闭声音，并将配置与高分隔离在`build/state/`，不会重设HOME。不带这些环境变量直接运行内部二进制仍会使用上游用户目录规则。菜单中进入游戏，支持方向键和组合斜移；字母快捷键可能受输入法影响。
 
-本次窗口验证使用`SDL_VIDEODRIVER=x11 bash scripts/run_gui.sh`（Wayland桌面上的XWayland路径）。默认原生Wayland路径尚未验收，不宣称无界面模式已实现。详见 [构建与启动记录](docs/validation/source-build.md)。
+本次窗口验证使用`SDL_VIDEODRIVER=x11 bash scripts/run_gui.sh`（Wayland桌面上的XWayland路径）。默认原生Wayland路径尚未验收；新增无显示服务模式的验证见[headless记录](docs/validation/headless-throughput.md)。详见 [构建与启动记录](docs/validation/source-build.md)。
 
 ## Python实时状态（已实现，尚非训练环境）
 

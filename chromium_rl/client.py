@@ -114,7 +114,9 @@ class GameClient:
 
     def __init__(self, *, binary: Path | None = None, data_directory: Path | None = None,
                  video_driver: str | None = None, timeout: float = 10.0, debug: bool = False,
-                 synchronous: bool = False, render_each_step: bool = True):
+                 synchronous: bool = False, render_each_step: bool = True, headless: bool = False):
+        if type(headless) is not bool or (headless and (not synchronous or render_each_step)):
+            raise ValueError("headless=True requires synchronous=True and render_each_step=False")
         if type(synchronous) is not bool:
             raise ValueError("synchronous must be a boolean")
         if type(render_each_step) is not bool or (not synchronous and not render_each_step):
@@ -137,7 +139,11 @@ class GameClient:
         env.update(CHROMIUM_BSU_RL_PROTOCOL="1", CHROMIUM_BSU_RL_STATE_DIR=str(state),
                    CHROMIUM_BSU_SCORE=str(state / "scores"), CHROMIUM_BSU_DATA=str(data_directory),
                    CHROMIUM_BSU_RL_SYNCHRONOUS="1" if synchronous else "0",
-                   CHROMIUM_BSU_RL_RENDER="1" if render_each_step else "0")
+                   CHROMIUM_BSU_RL_RENDER="1" if render_each_step else "0",
+                   CHROMIUM_BSU_RL_HEADLESS="1" if headless else "0")
+        if headless:
+            env.pop("DISPLAY", None)
+            env.pop("WAYLAND_DISPLAY", None)
         if video_driver is not None:
             env["SDL_VIDEODRIVER"] = video_driver
         command = [str(binary), "--window", "--vidmode", "1", "--noaudio"]
@@ -146,6 +152,8 @@ class GameClient:
         try:
             self._transport = _JsonProcess(command, env, state / "game.log", timeout)
             self.capabilities = Capabilities.parse(self._transport.call("hello"))
+            if headless and not self.capabilities.headless:
+                raise ProtocolError("Native build lacks true headless mode; rebuild first")
             if synchronous and not self.capabilities.step:
                 raise ProtocolError("Native build lacks synchronous step; rebuild first")
             if not render_each_step and not self.capabilities.render_free_steps:

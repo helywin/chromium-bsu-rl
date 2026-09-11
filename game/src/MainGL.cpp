@@ -14,6 +14,7 @@
 #include "gettext.h"
 
 #include "MainGL.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -69,7 +70,7 @@
 MainGL::MainGL()
 {
 	game = Global::getInstance();
-	initGL();
+	if(!SnapshotBridge::headless()) initGL();
 	loadTextures();
 }
 
@@ -128,6 +129,7 @@ int MainGL::initGL()
 //----------------------------------------------------------
 void MainGL::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	try {
 #if defined(TEXT_GLC) && defined(TEXT_FTGL)
 		Config *config = Config::instance();
@@ -158,6 +160,7 @@ void MainGL::loadTextures()
 //----------------------------------------------------------
 void MainGL::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	delete game->text;
 	game->text = 0;
 }

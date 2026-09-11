@@ -6,6 +6,7 @@
  * "Clarified Artistic License"
  */
 #include "EnemyFleet.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cmath>
@@ -58,6 +59,7 @@ EnemyFleet::~EnemyFleet()
 //----------------------------------------------------------
 void	EnemyFleet::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	char	filename[256];
 	for(int i = 0; i < NumEnemyTypes; i++)
 	{
@@ -75,6 +77,7 @@ void	EnemyFleet::loadTextures()
 //----------------------------------------------------------
 void	EnemyFleet::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	for(int i = 0; i < NumEnemyTypes; i++)
 	{
 		glDeleteTextures(1, &shipTex[i]);

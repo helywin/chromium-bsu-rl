@@ -13,6 +13,7 @@
 #include "gettext.h"
 
 #include "MenuGL.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -100,6 +101,7 @@ MenuGL::~MenuGL()
 //----------------------------------------------------------
 void MenuGL::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	elecTex   = Image::load(dataLoc("png/electric.png"), IMG_NOMIPMAPS, IMG_BLEND3, GL_CLAMP, GL_LINEAR, GL_LINEAR);
 	backTex   = Image::load(dataLoc("png/menu_back.png"), IMG_NOMIPMAPS, IMG_SOLID, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 //	csrTex    = Image::load(dataLoc("png/cursor.png"));
@@ -118,6 +120,7 @@ void MenuGL::loadTextures()
 //----------------------------------------------------------
 void MenuGL::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	glDeleteTextures(1, &elecTex);
 	glDeleteTextures(1, &backTex);
 	glDeleteTextures(1, &envTex);

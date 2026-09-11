@@ -13,6 +13,7 @@
 #include "gettext.h"
 
 #include "Global.h"
+#include "rl/SnapshotBridge.h"
 #include "extern.h"
 #include "HiScore.h"
 #include "Config.h"
@@ -246,6 +247,8 @@ void Global::createGame()
 	menu		= new MenuGL();
 	itemAdd		= new ScreenItemAdd();
 
+    if(SnapshotBridge::headless()) audio = new Audio();
+    else {
 #if defined(AUDIO_OPENAL) && defined(AUDIO_SDLMIXER)
 	if(config->audioType() == Config::AudioOpenAL)
 		audio = new AudioOpenAL();
@@ -258,6 +261,7 @@ void Global::createGame()
 #else
 	audio		= new Audio();
 #endif
+    }
 
 	groundGame	= groundMenu = ground;
 

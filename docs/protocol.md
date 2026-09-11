@@ -27,7 +27,7 @@ Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `s
 
 Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has episode-local spawn IDs and typed fields documented in [the bullet contract](render-free-stepping.md#enemy-bullet-contract). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Collision events and enemy aircraft IDs are later work. Menu observations are introspection only, not transitions suitable for training.
 
-Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/seed are true in the SDL synchronous runtime. headless/deterministic remain false; seeded repeatability is scoped below. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
+Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/seed are true in the SDL synchronous runtime. headless reports the selected runtime mode; deterministic remains false and seeded repeatability is scoped below. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
 
 ## Python API
 
@@ -75,7 +75,7 @@ produce unique sequences (e.g. libc may map seeds 0 and 1 identically). Keep the
 broad `deterministic` capability false rather than promising universal identity.
 Startup without an explicit reset retains the legacy time-based initialization;
 repeatable runs must call reset first. Synchronous tests use no-audio X11/GL;
-this is not truly headless or multi-level support.
+the default mode still requires a display; opt-in headless mode is described below. Multi-level support is not added.
 
 Python standalone client: `GameClient.reset(seed) -> Snapshot`. The independent
 learning project implements its own transport rather than importing this client.
@@ -100,3 +100,19 @@ prevent an item from appearing in the next snapshot. Draw-only wobble is not pos
 Traversal is const and does not change the legacy iteration cursor. IDs are assigned
 when inserted and restart on seeded episode reconstruction. All active objects are
 included, even outside the visible screen; array order is not a policy ordering.
+
+
+## True headless synchronous mode (2026-09-11)
+
+Set `CHROMIUM_BSU_RL_HEADLESS=1` with protocol/synchronous mode, or use
+`GameClient(synchronous=True, render_each_step=False, headless=True)`.
+No SDL video subsystem, window, GL context, texture/font loading or audio backend is
+created. Game object construction, RNG draws, physics, collisions and visual-state
+updates that affect snapshots remain intact. No display server or Xvfb is required.
+The binary still links its usual libraries; this is a runtime mode, not a dependency-free build.
+
+`hello.headless=true`, `render=false`, `step/reset/render_free_steps=true`.
+A render request fails without advancing the game. Create a separate GUI process for
+playback. GUI defaults are unchanged. The sync command loop now polls stdin and wakes
+on input instead of sleeping 2 ms after each iteration; tick duration remains 0.02
+simulated seconds. See [validation](validation/headless-throughput.md).

@@ -13,6 +13,7 @@
 #include "gettext.h"
 
 #include "PowerUps.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -110,6 +111,7 @@ PowerUps::~PowerUps()
 //----------------------------------------------------------
 void	PowerUps::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	pwrTex			= Image::load(dataLoc("png/powerUpTex.png"), IMG_NOMIPMAPS, IMG_BLEND3, GL_CLAMP, GL_LINEAR, GL_LINEAR);
 	tex[Shields]	= Image::load(dataLoc("png/powerUpShield.png"));
 	tex[SuperShields] = tex[Shields];
@@ -122,6 +124,7 @@ void	PowerUps::loadTextures()
 //----------------------------------------------------------
 void	PowerUps::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	for(int i = 0; i < NumPowerUps; i++)
 	{
 		glDeleteTextures(1, &tex[i]);

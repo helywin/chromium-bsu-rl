@@ -13,6 +13,7 @@
 #include "gettext.h"
 
 #include "HeroAmmo.h"
+#include "rl/SnapshotBridge.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -85,6 +86,7 @@ HeroAmmo::~HeroAmmo()
 //----------------------------------------------------------
 void HeroAmmo::loadTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	char filename[256];
 	for(int i = 0; i < NUM_HERO_AMMO_TYPES; i++)
 	{
@@ -96,6 +98,7 @@ void HeroAmmo::loadTextures()
 //----------------------------------------------------------
 void HeroAmmo::deleteTextures()
 {
+    if(SnapshotBridge::headless()) return;
 	for(int i = 0; i < NUM_HERO_AMMO_TYPES; i++)
 	{
 		glDeleteTextures(1, &ammoTex[i]);
