@@ -332,6 +332,7 @@ void HeroAircraft::doDamage(float d)
 	if(superBomb)
 		return;
 
+	const float shieldsBeforeDamage = shields;
 	if(shields > HERO_SHIELDS)
 	{
 		shields	-= d*0.25;
@@ -353,6 +354,12 @@ void HeroAircraft::doDamage(float d)
 		damage += d;
 		game->statusDisplay->setDamageAlpha(1.0);
 	}
+
+    // Count absorbed shield damage before death/reset can replace the resource.
+    // Clamp the remaining resource for accounting without changing game physics.
+    const float shieldRemaining = shields > 0.0f ? shields : 0.0f;
+    if(shieldsBeforeDamage > shieldRemaining)
+        game->episodeEvents.shieldDamage += shieldsBeforeDamage - shieldRemaining;
 
 	if(damage > 0.0)
 	{

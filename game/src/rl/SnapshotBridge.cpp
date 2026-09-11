@@ -133,6 +133,7 @@ json_object *snapshot(float keyboardX, float keyboardY) {
     put(events, "missed_powerups", json_object_new_int64(g->episodeEvents.missedPowerups));
     put(events, "pickup_score", json_object_new_double(g->episodeEvents.pickupScore));
     put(events, "missed_powerup_score", json_object_new_double(g->episodeEvents.missedPowerupScore));
+    put(events, "shield_damage", json_object_new_double(g->episodeEvents.shieldDamage));
     put(s, "episode_events", events);
     return s;
 }
@@ -180,6 +181,7 @@ bool process(const std::string &line, float &x, float &y,
         put(result, "enemy_bullets", json_object_new_boolean(true));
         put(result, "powerups", json_object_new_boolean(true));
         put(result, "episode_events", json_object_new_boolean(true));
+        put(result, "shield_damage", json_object_new_boolean(true));
         put(result, "upstream_version", json_object_new_string("0.9.16.1"));
         put(result, "schema_version", json_object_new_int(2));
         put(result, "live_snapshot", json_object_new_boolean(true));

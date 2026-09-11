@@ -100,3 +100,14 @@ git submodule update --init --recursive
 基于 [Chromium B.S.U.](https://chromium-bsu.sourceforge.net/) 0.9.16.1发布源码，保留上游Clarified Artistic License、版权声明及音效的MIT/Expat许可。来源摘要见 [UPSTREAM.md](game/UPSTREAM.md)，修改见 [LOCAL_CHANGES.md](game/LOCAL_CHANGES.md)。不对上游代码或资源重新套用其他许可证。
 
 新增脚本与文档许可及第三方边界见 [LICENSE.md](LICENSE.md)。
+
+
+### Shield damage accounting
+
+Snapshots expose cumulative `episode_events.shield_damage`; hello advertises
+`shield_damage: true`. This is the nonnegative shield resource absorbed in
+HeroAircraft::doDamage, capped at the available resource. It excludes passive
+super-shield decay, refill, reset, and terminal cleanup; reset clears the counter.
+It includes collision and other doDamage callers, so it is not bullet-only attribution.
+No physics, damage allocation or RNG behavior is changed. Rebuild the local binary
+with scripts/build_chromium_rl.sh before using consumers requiring this capability.
