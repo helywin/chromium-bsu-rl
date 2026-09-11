@@ -43,7 +43,8 @@ class EpisodeEventTests(unittest.TestCase):
                     if result['terminated']:break
         self.assertTrue(isolated_shield_hit)
         self.assertEqual(observed, {'enemies_destroyed','enemies_escaped','lives_lost',
-                                    'pickups','missed_powerups','pickup_score','missed_powerup_score','shield_damage'})
+                                    'pickups','missed_powerups','pickup_score','missed_powerup_score','shield_damage',
+                                    'projectile_damage','projectile_damage_fraction','projectile_kills'})
 
     def test_passive_decay_does_not_count_as_damage(self) -> None:
         with GameClient(synchronous=True, render_each_step=False, headless=True) as game:
@@ -53,3 +54,31 @@ class EpisodeEventTests(unittest.TestCase):
             after = wire.call('step', action=0, ticks=1)['snapshot']
             self.assertLess(after['player']['shields'], before['player']['shields'])
             self.assertEqual(after['episode_events']['shield_damage'], 0)
+
+    def test_partial_hits_and_no_fire_attribution(self) -> None:
+        nonlethal_hit = False
+        uncredited_destroyed = False
+        with GameClient(synchronous=True, render_each_step=False, headless=True) as game:
+            wire = game._transport
+            assert wire is not None
+            self.assertTrue(wire.call('hello')['projectile_damage'])
+            for firing in (False, True):
+                for seed in range(1, 17):
+                    state = wire.call('reset', seed=seed)
+                    rng = random.Random(100000 + seed)
+                    for _ in range(250):
+                        before = state['episode_events']
+                        result = wire.call('step', action=rng.randrange(9) + (9 if firing else 0), ticks=5)
+                        state = result['snapshot']
+                        after = state['episode_events']
+                        if not firing:
+                            for key in ('projectile_damage', 'projectile_damage_fraction', 'projectile_kills'):
+                                self.assertEqual(after[key], 0)
+                            uncredited_destroyed |= after['enemies_destroyed'] > 0
+                        if (after['projectile_damage_fraction'] > before['projectile_damage_fraction']
+                                and after['projectile_kills'] == before['projectile_kills']):
+                            nonlethal_hit = True
+                        if result['terminated']:
+                            break
+        self.assertTrue(nonlethal_hit, 'Need a real hit before a projectile kill')
+        self.assertTrue(uncredited_destroyed, 'Need real non-projectile destruction without credit')

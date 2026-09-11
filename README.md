@@ -111,3 +111,14 @@ super-shield decay, refill, reset, and terminal cleanup; reset clears the counte
 It includes collision and other doDamage callers, so it is not bullet-only attribution.
 No physics, damage allocation or RNG behavior is changed. Rebuild the local binary
 with scripts/build_chromium_rl.sh before using consumers requiring this capability.
+
+
+### Projectile damage attribution
+
+hello advertises `projectile_damage: true`. Cumulative episode events add:
+`projectile_damage` (actual HP removed by player ammunition, excluding overkill),
+`projectile_damage_fraction` (that damage divided by the target's initial HP),
+and `projectile_kills` (projectile transitions from damage <= 0 to damage > 0).
+Counters reset with the episode. Persistent ammunition counts damage each tick.
+They exclude collision, super-bomb and fleet-cleanup damage and do not change physics.
+The existing enemies_destroyed counter remains an all-source diagnostic.

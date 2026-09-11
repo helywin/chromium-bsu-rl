@@ -268,10 +268,23 @@ void HeroAmmo::checkForHits(EnemyFleet *fleet)
 				if(enemy->checkHit(thisAmmo) == true)
 				{
 					//do damage
+                    const float damageBeforeHit = enemy->damage;
 					if(i == 1)
 						enemy->damage += ammoDamage[i]*game->speedAdj;
 					else
 						enemy->damage += ammoDamage[i];
+
+                    // Credit only actual HP removed by player ammunition, not overkill.
+                    const float remaining = damageBeforeHit < 0.0f ? -damageBeforeHit : 0.0f;
+                    const float applied = enemy->damage - damageBeforeHit;
+                    const float effective = applied > 0.0f
+                        ? (applied < remaining ? applied : remaining) : 0.0f;
+                    game->episodeEvents.projectileDamage += effective;
+                    if(enemy->baseDamage < 0.0f)
+                        game->episodeEvents.projectileDamageFraction += effective / -enemy->baseDamage;
+                    // Count once at the projectile's lethal transition, not fleet cleanup.
+                    if(damageBeforeHit <= 0.0f && enemy->damage > 0.0f)
+                        ++game->episodeEvents.projectileKills;
 
 					//add explosion
 					game->explosions->addExplo((Explosions::ExploType)(Explosions::HeroAmmo00+i), thisAmmo->pos);

@@ -38,6 +38,8 @@ public:
         int64_t enemiesDestroyed = 0, enemiesEscaped = 0, livesLost = 0;
         int64_t pickups = 0, missedPowerups = 0;
         double pickupScore = 0, missedPowerupScore = 0;
+        int64_t projectileKills = 0;
+        double projectileDamage = 0, projectileDamageFraction = 0;
         double shieldDamage = 0; // Only damage absorption; excludes decay/reset/refill.
     };
     EpisodeEvents episodeEvents;
