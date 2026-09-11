@@ -21,6 +21,7 @@
 #endif
 
 #include "ScreenItem.h"
+#include <stdint.h>
 
 #define WOBBLE_0 45
 #define WOBBLE_1 75
@@ -45,6 +46,8 @@ public:
 	void	drawGL();
 	void	clear();
 
+	const PowerUp *firstForSnapshot() const;
+	float fallSpeedForSnapshot() const { return speed; }
 	PowerUp	*getFirst();
 	PowerUp	*getNext();
 	void	remove(PowerUp*);
@@ -66,6 +69,7 @@ private:
 	float	wobble_1[WOBBLE_1];
 
 	int	activeCount;
+	int64_t nextSnapshotId;
 
 private:
 	Global	*game;
@@ -82,6 +86,7 @@ public:
 
 	int thisCount() { return count_this; }
 	float power;
+	int64_t snapshotId;
 
 	void	seal();
 	PowerUp *back;

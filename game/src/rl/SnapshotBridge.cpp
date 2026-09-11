@@ -5,6 +5,7 @@
 #include "../HeroAircraft.h"
 #include "../EnemyFleet.h"
 #include "../EnemyAmmo.h"
+#include "../PowerUps.h"
 #include <json-c/json.h>
 #include <cerrno>
 #include <csignal>
@@ -107,6 +108,21 @@ json_object *snapshot(float keyboardX, float keyboardY) {
         }
     }
     put(s, "enemy_bullets", bullets);
+    json_object *powerups = json_object_new_array();
+    for(const PowerUp *p = g->powerUps->firstForSnapshot(); p; p = p->next) {
+        json_object *item = json_object_new_object();
+        put(item, "id", json_object_new_int64(p->snapshotId));
+        put(item, "type", json_object_new_int(p->type));
+        put(item, "position", vec(p->pos, 3));
+        put(item, "power", json_object_new_double(p->power));
+        // Next update displacement before the horizontal boundary clamp.
+        const float damping = (1.0f-g->speedAdj)+(g->speedAdj*0.982f);
+        float delta[] = {p->vel[0]*damping,
+            g->powerUps->fallSpeedForSnapshot()*g->speedAdj+p->vel[1]*damping};
+        put(item, "next_displacement", vec(delta, 2));
+        json_object_array_add(powerups, item);
+    }
+    put(s, "powerups", powerups);
     return s;
 }
 bool process(const std::string &line, float &x, float &y,
@@ -151,6 +167,7 @@ bool process(const std::string &line, float &x, float &y,
         put(result, "render", json_object_new_boolean(syncMode));
         put(result, "render_free_steps", json_object_new_boolean(syncMode));
         put(result, "enemy_bullets", json_object_new_boolean(true));
+        put(result, "powerups", json_object_new_boolean(true));
         put(result, "upstream_version", json_object_new_string("0.9.16.1"));
         put(result, "schema_version", json_object_new_int(2));
         put(result, "live_snapshot", json_object_new_boolean(true));

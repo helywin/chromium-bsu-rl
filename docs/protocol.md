@@ -80,3 +80,23 @@ this is not truly headless or multi-level support.
 Python standalone client: `GameClient.reset(seed) -> Snapshot`. The independent
 learning project implements its own transport rather than importing this client.
 See [native reset validation](validation/seeded-reset.md).
+
+## Additive powerup snapshot fields (2026-09-11)
+
+`hello.powerups=true` advertises `snapshot.powerups`. This is an additive schema2
+extension; protocol and seeded-reset-v3 gameplay version are unchanged. No physics,
+reward, RNG draws, or pickup rules changed. Old clients can ignore the array; consumers
+requiring powerups must check the capability and reject a missing field.
+
+Each item contains `id` (positive episode-local spawn ID, stable until removed),
+`type` (0 Shields, 1 SuperShields, 2 Repair, 3/4/5 HeroAmmo00/01/02), `position`
+(three world coordinates), `power` (raw refill multiplier, not score), and
+`next_displacement` (two world-unit displacements for the next update before horizontal
+boundary clamping). The latter uses the update's damping factor
+`1-speedAdj+speedAdj*0.982` and vertical scroll contribution `speed*speedAdj`;
+it is not a constant-velocity promise over multiple ticks. Removal or collection may
+prevent an item from appearing in the next snapshot. Draw-only wobble is not position.
+
+Traversal is const and does not change the legacy iteration cursor. IDs are assigned
+when inserted and restart on seeded episode reconstruction. All active objects are
+included, even outside the visible screen; array order is not a policy ordering.

@@ -44,6 +44,7 @@ PowerUps::PowerUps()
 	game = Global::getInstance();
 	int i;
 
+	nextSnapshotId = 1;
 	activeCount = 0;
 	currentPwrUp = 0;
 
@@ -154,6 +155,11 @@ PowerUp	*PowerUps::getFirst()
 }
 
 //----------------------------------------------------------
+const PowerUp *PowerUps::firstForSnapshot() const
+{
+	return pwrUpRoot->next;
+}
+
 PowerUp	*PowerUps::getNext()
 {
 	PowerUp *retVal = 0;
@@ -184,6 +190,7 @@ void	PowerUps::remove(PowerUp *pwr)
 //----------------------------------------------------------
 void PowerUps::addPowerUp(PowerUp *pwrUp)
 {
+	pwrUp->snapshotId = nextSnapshotId++;
 	PowerUp *first = 0;
 
 	activeCount++;
@@ -318,6 +325,7 @@ int PowerUp::count_this = 0;
 PowerUp::PowerUp(PowerUps::Type t, float p[3], float pwr, float *v)
 	: ScreenItem(ScreenItem::ItemPowerUp)
 {
+	snapshotId = 0;
 	count_this++;
 	type = t;
 	power	= pwr;
