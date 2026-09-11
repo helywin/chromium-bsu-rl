@@ -165,6 +165,7 @@ void Global::resetForRL(unsigned int seed)
 
 void Global::newGame()
 {
+    episodeEvents = EpisodeEvents();
 	Config *config = Config::instance();
 	HiScore::getInstance()->set(config->intSkill(), hero->getScore());
 	gameSkill = config->gameSkillBase() + 0.5;

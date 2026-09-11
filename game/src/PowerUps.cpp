@@ -237,6 +237,8 @@ void PowerUps::update()
 
 		if(pwrUp->pos[1] < -12)
 		{
+            ++game->episodeEvents.missedPowerups;
+            const float scoreBeforeMiss = game->hero->getScore();
 			if(game->gameMode == Global::Game)
 				switch(pwrUp->type)
 				{
@@ -252,6 +254,7 @@ void PowerUps::update()
 						game->hero->addScore(2500.0);
 						break;
 				}
+            game->episodeEvents.missedPowerupScore += game->hero->getScore() - scoreBeforeMiss;
 			delUp = pwrUp;
 			pwrUp = pwrUp->next;
 			remove(delUp);

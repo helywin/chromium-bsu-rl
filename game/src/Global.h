@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <ctime>
+#include <stdint.h>
 
 #include "define.h"
 #include "Text.h"
@@ -33,6 +34,12 @@ class Global
 {
 public:
 	enum GameMode { Game, Menu, LevelOver, HeroDead };
+    struct EpisodeEvents {
+        int64_t enemiesDestroyed = 0, enemiesEscaped = 0, livesLost = 0;
+        int64_t pickups = 0, missedPowerups = 0;
+        double pickupScore = 0, missedPowerupScore = 0;
+    };
+    EpisodeEvents episodeEvents;
 
 	~Global();
 

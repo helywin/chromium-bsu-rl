@@ -333,6 +333,7 @@ void	EnemyFleet::update()
 			thisEnemy->age = 0;
 			game->hero->loseLife();
 			game->tipShipPast++;
+            ++game->episodeEvents.enemiesEscaped;
 		}
 
 		//-------------- If enemies are critically damaged, destroy them...
@@ -347,6 +348,7 @@ void	EnemyFleet::update()
 
 			if(	thisEnemy->age ) //-- set age to 0 for silent deletion...
 			{
+                ++game->episodeEvents.enemiesDestroyed;
 				switch(thisEnemy->type)
 				{
 					case EnemyBoss01: //-- BIG explosion for the Boss...

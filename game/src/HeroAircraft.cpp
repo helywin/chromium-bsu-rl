@@ -205,6 +205,7 @@ void HeroAircraft::loseLife()
 	float	p[3] = { 10.2, 0.0, 25.0 };
 	//-- this has to be in sync w/ StatusDisplay positions...
 	lives--;
+	++game->episodeEvents.livesLost;
 	p[1] = 7.4-lives*game->hero->size[1];
 
 	if(lives > -2)
@@ -282,6 +283,7 @@ void HeroAircraft::useItem()
 					damage = 0.0;
 					shields = 0.0;
 					lives--;
+					++game->episodeEvents.livesLost;
 					startDeath();
 					break;
 				case 1:
@@ -356,6 +358,7 @@ void HeroAircraft::doDamage(float d)
 	{
 		damage = 0.0;
 		lives--;
+		++game->episodeEvents.livesLost;
 		startDeath();
 	}
 }
@@ -601,6 +604,8 @@ void HeroAircraft::checkForPowerUps(PowerUps *powerUps)
 		dist = fabs(pos[0]-pwrUp->pos[0]) + fabs(pos[1]-pwrUp->pos[1]);
 		if(dist < size[1])
 		{
+            ++game->episodeEvents.pickups;
+            const float scoreBeforePickup = score;
 			game->audio->playSound(Audio::PowerUp, pos);
 			switch(pwrUp->type)
 			{
@@ -677,6 +682,7 @@ void HeroAircraft::checkForPowerUps(PowerUps *powerUps)
 			game->explosions->addExplo(Explosions::PowerBurst, pwrUp->pos);
 			delUp = pwrUp;
 			pwrUp = pwrUp->next;
+            game->episodeEvents.pickupScore += score - scoreBeforePickup;
 			powerUps->remove(delUp);
 		}
 		else

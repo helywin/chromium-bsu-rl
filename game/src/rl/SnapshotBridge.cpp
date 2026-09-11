@@ -125,6 +125,15 @@ json_object *snapshot(float keyboardX, float keyboardY) {
         json_object_array_add(powerups, item);
     }
     put(s, "powerups", powerups);
+    json_object *events = json_object_new_object();
+    put(events, "enemies_destroyed", json_object_new_int64(g->episodeEvents.enemiesDestroyed));
+    put(events, "enemies_escaped", json_object_new_int64(g->episodeEvents.enemiesEscaped));
+    put(events, "lives_lost", json_object_new_int64(g->episodeEvents.livesLost));
+    put(events, "pickups", json_object_new_int64(g->episodeEvents.pickups));
+    put(events, "missed_powerups", json_object_new_int64(g->episodeEvents.missedPowerups));
+    put(events, "pickup_score", json_object_new_double(g->episodeEvents.pickupScore));
+    put(events, "missed_powerup_score", json_object_new_double(g->episodeEvents.missedPowerupScore));
+    put(s, "episode_events", events);
     return s;
 }
 bool process(const std::string &line, float &x, float &y,
@@ -170,6 +179,7 @@ bool process(const std::string &line, float &x, float &y,
         put(result, "render_free_steps", json_object_new_boolean(syncMode));
         put(result, "enemy_bullets", json_object_new_boolean(true));
         put(result, "powerups", json_object_new_boolean(true));
+        put(result, "episode_events", json_object_new_boolean(true));
         put(result, "upstream_version", json_object_new_string("0.9.16.1"));
         put(result, "schema_version", json_object_new_int(2));
         put(result, "live_snapshot", json_object_new_boolean(true));

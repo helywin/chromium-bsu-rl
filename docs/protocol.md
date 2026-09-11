@@ -116,3 +116,26 @@ A render request fails without advancing the game. Create a separate GUI process
 playback. GUI defaults are unchanged. The sync command loop now polls stdin and wakes
 on input instead of sleeping 2 ms after each iteration; tick duration remains 0.02
 simulated seconds. See [validation](validation/headless-throughput.md).
+
+## Cumulative episode events (2026-09-11)
+
+`hello.episode_events=true` advertises additive `snapshot.episode_events` fields.
+Counters reset on newGame/reset, remain unchanged by snapshot/render and are never
+used by native physics or scoring. Subtract snapshots from the same episode to get
+step events; do not subtract across resets.
+
+- `enemies_destroyed`: non-silent damaged enemy removal, including bullets,
+  collisions and chain explosions. Excludes enemies removed after passing the bottom
+  (age set to zero), reset and ordinary cleanup. Not exclusively bullet kill attribution.
+- `enemies_escaped`: enemy passing y<-14; each invokes loseLife.
+- `lives_lost`: each actual lives--, including escaped enemies, damage and self-destruct.
+  Unlike net life difference, simultaneous awarded lives do not hide this count.
+- `pickups`: each hero collision that consumes a powerup, including resource pickups
+  that give no score or no benefit because a resource is full.
+- `missed_powerups`: each powerup removed after passing y<-12.
+- `pickup_score`, `missed_powerup_score`: actual raw score increases in those two paths;
+  no score is invented if game mode suppresses scoring. Other raw score is the total
+  minus these contributions; it is not a count of bullet hits.
+
+Counts are nonnegative int64, score totals are nonnegative numbers. Existing gameplay
+version and schema2 remain; this is instrumentation, not a scoring/rule modification.
