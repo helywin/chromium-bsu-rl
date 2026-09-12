@@ -125,6 +125,7 @@ Python package, wire schema and game behavior versions have separate meanings.
 | Python API, actions and state semantics | [Read](docs/api.md) | [阅读](docs/api.zh-CN.md) |
 | JSON-lines protocol for other languages | [Read](docs/protocol.md) | [阅读](docs/protocol.zh-CN.md) |
 | Architecture and roadmap | [Read](docs/architecture.md) | [阅读](docs/architecture.zh-CN.md) |
+| Headless performance and GPU acceleration | [Read](docs/performance.md) | [阅读](docs/performance.zh-CN.md) |
 | Contributing and verification | [Read](CONTRIBUTING.md) | [阅读](CONTRIBUTING.md#简体中文) |
 
 [Documentation index and evidence](docs/README.md) · [Changelog](CHANGELOG.md) ·

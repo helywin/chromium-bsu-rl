@@ -61,9 +61,13 @@ must be described in the changelog and both language guides.
 | Full-game tasks | Implement and validate level transitions, respawn and final completion |
 | Learning examples | Training implementation, evaluation protocol and measured results |
 | Portable native packages | Per-platform builds, dependency/asset bundling and runtime acceptance |
+| Batched CPU and GPU simulation | Isolate per-environment state, design array interfaces and validate behavior |
 
 These are directions, not shipped APIs or delivery commitments. Consumers can
 build task-specific wrappers today using the raw state and events.
+
+The [performance guide](performance.md) explains throughput measurements,
+consumer bottlenecks and the separate work required for GPU learning or simulation.
 
 Historical implementation plans are retained in [design.md](design.md).
 [Validation records](README.md#validation-records) describe their original scope;

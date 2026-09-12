@@ -16,11 +16,14 @@ independent. / Python 包版本、协议/快照版本和原生行为版本分别
   to the Python client and license notices. Use modern package metadata.
 - Correct outdated capability descriptions and separate historical records from
   current usage. Fail early on unsupported native Windows client execution.
+- Document headless throughput measurement, consumer bottlenecks and proposed
+  CPU/GPU optimization paths in English and Chinese; no GPU backend is added.
 
 新增完整中英文入口、使用文档、贡献模板与分发流程；公开道具、累计事件和能力类型，
 缺失数据与实测零值分开处理。补充无显示示例、非 root 开发容器、类型/包检查和仅由 tag 触发的原生 CI。
 源码包包含原生构建所需内容，wheel 保持为纯 Python 客户端。更新过时说明，明确平台边界。
 本次不改变动作、物理、奖励或随机数行为。
+补充中英文无窗口性能指南，区分采样与学习吞吐，并说明待研究的 CPU/GPU 改造方向；尚未增加 GPU 后端。
 
 ## 0.1.0 source history / 源码阶段记录
 

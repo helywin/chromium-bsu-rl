@@ -9,6 +9,7 @@ Current guides below describe the present public interface. / 以下指南描述
 | Python API | [Read](api.md) | [阅读](api.zh-CN.md) |
 | Wire protocol / 进程协议 | [Read](protocol.md) | [阅读](protocol.zh-CN.md) |
 | Architecture / 架构与方向 | [Read](architecture.md) | [阅读](architecture.zh-CN.md) |
+| Performance and GPU acceleration / 性能与 GPU 加速 | [Read](performance.md) | [阅读](performance.zh-CN.md) |
 | Contributing / 贡献 | [Read](../CONTRIBUTING.md) | [阅读](../CONTRIBUTING.md#简体中文) |
 
 ## Validation records

@@ -115,6 +115,7 @@ Python 包版本、协议版本、快照版本和游戏行为版本各有用途�
 | Python 接口、动作与状态语义 | [Read](docs/api.md) | [阅读](docs/api.zh-CN.md) |
 | 面向其他语言的 JSON-lines 协议 | [Read](docs/protocol.md) | [阅读](docs/protocol.zh-CN.md) |
 | 架构与后续方向 | [Read](docs/architecture.md) | [阅读](docs/architecture.zh-CN.md) |
+| 无窗口性能与 GPU 加速 | [Read](docs/performance.md) | [阅读](docs/performance.zh-CN.md) |
 | 贡献与验证流程 | [Read](CONTRIBUTING.md) | [阅读](CONTRIBUTING.md#简体中文) |
 
 [文档索引与验证记录](docs/README.md) · [变更记录](CHANGELOG.md) ·

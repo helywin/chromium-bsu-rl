@@ -19,7 +19,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     pairs = [("README.md", "README.zh-CN.md")]
     pairs += [(f"docs/{name}.md", f"docs/{name}.zh-CN.md")
-              for name in ("installation", "api", "protocol", "architecture")]
+              for name in ("installation", "api", "protocol", "architecture", "performance")]
     for pair in pairs:
         assert all((root / path).is_file() for path in pair), f"Missing language pair: {pair}"
     files = [*root.glob("*.md"), *root.joinpath("docs").rglob("*.md"),
