@@ -1,0 +1,14 @@
+include README.md README.zh-CN.md LICENSE.md CHANGELOG.md CONTRIBUTING.md SECURITY.md
+include Dockerfile .dockerignore .gitattributes .gitignore AGENTS.md
+graft chromium_rl
+graft game
+graft docs
+graft examples
+graft scripts
+graft tests
+graft .github
+prune build
+prune artifacts
+prune dist
+prune .venv
+global-exclude __pycache__ *.py[cod] .DS_Store

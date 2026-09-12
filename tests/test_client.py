@@ -1,4 +1,4 @@
-"""Developer regression checks, not learner exercises. Uses only stdlib."""
+"""Transport/parser regressions and optional native display checks using stdlib."""
 import os
 from dataclasses import replace
 from pathlib import Path

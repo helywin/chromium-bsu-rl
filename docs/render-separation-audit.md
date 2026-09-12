@@ -1,5 +1,7 @@
 # Rendering separation: incremental audit
 
+> Historical audit / 历史审查。Current: [English API](api.md) / [中文 API](api.zh-CN.md).
+
 Date: 2026-09-07. Historical first-pass audit. The single-level remaining items below have since been addressed in [split-render-v2](render-free-stepping.md), with render-free stepping now enabled (still requires display/GL). The old9563-state before/after result applies only to the initial extraction; the new version has a separate draw/skip comparison.
 
 ## Why simply skipping drawGL is wrong
@@ -14,7 +16,7 @@ For example, when the hero's dontShow counter is1, the old sprite code hides the
 - `HeroAircraft::advanceVisibility`: sprite decision and dontShow decrement, called once at the original actor-drawing boundary; drawGL itself no longer decrements the counter. Still consumes visual RNG in drawGL.
 - `EnemyFleet::advanceTargeting`: periodic Straight/Boss01 targeting assignments moved out of drawGL. These assignments do not consume RNG or alter the enemy list, so moving them just before enemy drawing preserves the subsequent logic.
 - All existing MainGL call sites, including human-mode death/success paths, call the extracted actor updates as appropriate. The combined drawGameGL entrypoint still owns the sequencing.
-- The preceding drawable-size fix is retained. The learner confirmed the slow playback window now displays the complete scene. Before drawing, actual SDL drawable pixels determine a centered original-aspect viewport; game coordinates are unchanged.
+- The preceding drawable-size fix is retained. The original tester confirmed the slow playback window displayed the complete scene. Before drawing, actual SDL drawable pixels determine a centered original-aspect viewport; game coordinates are unchanged.
 
 ## Remaining dependency checklist
 

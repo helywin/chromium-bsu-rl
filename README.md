@@ -1,124 +1,148 @@
 # Chromium B.S.U. for RL
 
-A standalone project for adapting Chromium B.S.U. into a deterministic, accelerated reinforcement-learning environment with Python interfaces and native GUI playback.
+**English** | [简体中文](README.zh-CN.md)
 
-**Status: synchronous steps, independent rendering and typed enemy-bullet snapshots available.** `GameClient(synchronous=True, render_each_step=False)` skips per-tick drawing; `render()` displays the current state without stepping. True no-display mode is available with `GameClient(synchronous=True, render_each_step=False, headless=True)`; ordinary GUI mode remains display/GL-dependent. Seeded first-level reset is available; Gymnasium wrapping and trained models remain unimplemented. This is not an official Chromium B.S.U. release.
+[CI: tag pushes only](.github/workflows/ci.yml)
 
-## 项目目标
+Control the Chromium B.S.U. arcade shooter from Python. Run seeded simulation
+steps without a display, inspect typed game state, or watch the same runtime in
+its native game window.
 
-- C++运行游戏，Python通过独立子进程调用`reset/step`，读取状态与事件。
-- 固定逻辑时间步，无渲染、不限速采样；GUI回放与训练共享游戏逻辑。
-- 保留键盘移动模型，提供明确的动作、观察、奖励和终止契约。
-- 可独立构建和使用，不依赖课程仓库、个人目录或Isaac Lab。
+An independent, unofficial adaptation of **Chromium B.S.U. 0.9.16.1**, this
+project provides a C++ game runtime and a dependency-free Python client for
+experiments, tools and third-party integrations.
 
-详见 [接口与加速设计方案](docs/design.md)。完整训练环境与策略仍待实现，已实现接口见下文。
+## What works today
 
-## 构建与运行（Linux）
+| Capability | Status |
+| --- | --- |
+| Live native window and read-only snapshots | Available |
+| 18 movement/fire actions; 1–50 ticks per request | Available; 0.02 simulated seconds per tick |
+| Seeded reset in the same process | Available; first level only |
+| True headless execution | Available; no display server, window or GL context |
+| Rendering on demand | Available in a display-dependent mode |
+| Typed player, enemy, bullet and powerup state | Available |
+| Cumulative combat, damage, pickup and life-loss events | Available |
+| Gymnasium environment, reward and observation encoding | Not implemented |
+| Full-game task, trained policies and learning benchmarks | Not provided |
 
-需要已有C/C++编译工具、Autoconf/Automake、gettext（含autopoint）、pkg-config，以及SDL2、SDL2_image、OpenGL/GLU、FTGL、Fontconfig、OpenAL、freealut、json-c（>=0.15）的开发文件。构建脚本会检查依赖，不自动安装或升级软件。
+The project is **alpha**. Seed repeatability is scoped to the same native build,
+platform and configuration. Raw snapshots are variable-length game state, not a
+complete policy observation. Read the [API contract](docs/api.md) before using
+fields as learning inputs or rewards.
 
-```bash
-bash scripts/build_chromium_rl.sh
-bash scripts/run_gui.sh
-```
+## Quick start
 
-默认4个编译任务，可用`CHROMIUM_RL_BUILD_JOBS=2`调整。构建仅在本仓库`build/`进行，不执行sudo或系统安装。每次保留独立`build/work.*`供诊断，重复构建会占用额外磁盘空间。
+The source workflow targets **Linux with Python 3.11+**. On Windows, run these
+commands inside WSL2, or use Docker below. Native Windows and macOS builds are
+not supported by this workflow.
 
-请通过启动脚本运行：它使用640×480窗口、关闭声音，并将配置与高分隔离在`build/state/`，不会重设HOME。不带这些环境变量直接运行内部二进制仍会使用上游用户目录规则。菜单中进入游戏，支持方向键和组合斜移；字母快捷键可能受输入法影响。
-
-本次窗口验证使用`SDL_VIDEODRIVER=x11 bash scripts/run_gui.sh`（Wayland桌面上的XWayland路径）。默认原生Wayland路径尚未验收；新增无显示服务模式的验证见[headless记录](docs/validation/headless-throughput.md)。详见 [构建与启动记录](docs/validation/source-build.md)。
-
-## Python实时状态（已实现，尚非训练环境）
-
-使用你自己的Python 3.11+虚拟环境。以下在独立仓库根目录执行，`<venv>`替换为该虚拟环境路径；先完成上面的本地构建：
-
-```bash
-<venv>/bin/python -m pip install -e .
-<venv>/bin/python examples/watch_snapshot.py
-```
-
-脚本会打开游戏；你从菜单进入并操作飞机，终端每0.5秒显示坐标、生命计数、得分和敌机数。Python读取的是游戏内部数据，不是截图识别，也不依赖输入法。数据接口、单位与边界见 [protocol.md](docs/protocol.md)。
-
-```python
-from chromium_rl import GameClient, Snapshot
-
-with GameClient() as game:
-    state: Snapshot = game.snapshot()
-    print(state.player.position, state.player.score)
-```
-
-IDE能识别`Snapshot/PlayerState/EnemyState`字段。每个客户端使用单独的临时配置目录，关闭时清理。当前游戏仍按实时循环运行；读取间隔不等于环境步长，不能把相邻两次读取直接当作可靠DQN经验。
-
-开发者检查（不是学习者练习）：
-
-```bash
-<venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
-# 显式允许打开GUI的集成检查：
-RUN_CHROMIUM_GUI_TESTS=1 <venv>/bin/python -m unittest discover -s tests -p 'test_*.py' -v
-```
-
-## Python同步动作、单独绘图与敌方子弹
-
-```bash
-<venv>/bin/python examples/watch_steps.py
-```
-
-无需从菜单开始，也无需模拟键盘。脚本演示移动、开火、释放与停顿，退出时关闭自己创建的窗口。
-
-```python
-from chromium_rl import Action, GameClient, StepResult
-
-with GameClient(synchronous=True) as game:
-    result: StepResult = game.step(Action.RIGHT_FIRE, ticks=1)
-    print(result.snapshot.player.position, result.episode_tick)
-```
-
-每个内部tick采用原版50fps参考尺度（`speedAdj=1`，标称0.02秒），执行完整逻辑更新；绘图可以独立关闭。没有step就不推进；连续相同方向视为保持按下，IDLE为释放并衰减，不是瞬间清零。每条指令最多50tick，到死亡或本关完成立即停下。
-
-这是**仅第一关的同步原型**，不是完整Gym环境。仍需要显示服务/GL，尚无奖励或整局任务。同步客户端现在可调用`game.reset(7)`，在原进程内开启种子为7的新局；返回初始Snapshot。种子重复性限定于相同构建、平台与配置，详见[验证记录](docs/validation/seeded-reset.md)。
-
-使用 `GameClient(synchronous=True, render_each_step=False)` 跳过逐步绘图，调用 `game.render()` 查看当前状态。敌方子弹位于 `state.enemy_bullets`，每颗含稳定ID、类型、位置、每步位移、贴图半尺寸和原始伤害。可以运行 `<venv>/bin/python examples/watch_enemy_bullets.py` 查看。**贴图尺寸不是碰撞范围，速度不是每秒单位。** 详见[当前绘图与子弹契约](docs/render-free-stepping.md)。
-
-新版绘图不再消耗游戏逻辑的随机数；绘图分离验证时行为版本为split-render-v2（当前为seeded-reset-v3），快照schema为2。当时9条对照轨迹、9563个快照绘图开关一致，9项测试通过。这里不承诺与旧版同seed轨迹一致；单次采样基准约22200tick/s（不逐步绘图），不是网络训练性能保证。
-
-## 获取仓库
+Prepare the [build prerequisites](docs/installation.md#prerequisites), then:
 
 ```bash
 git clone https://github.com/helywin/chromium-bsu-rl.git
+cd chromium-bsu-rl
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+bash scripts/build_chromium_rl.sh
+.venv/bin/python examples/headless_rollout.py --seed 7
 ```
 
-其他项目也可以使用Git子模块引用一个固定提交：
+The example runs a bounded scripted action sequence and prints JSON containing
+the native implementation, simulation ticks, final score and episode events.
+It stops at the first-level terminal state or its decision limit. It does not
+train a policy. A successful run exits with code 0 and leaves no game process.
+
+The build script checks existing dependencies and writes only to `build/`;
+it does not install system packages. Each client owns an isolated temporary
+configuration and score directory.
+
+### Use it from Python
+
+```python
+from chromium_rl import Action, GameClient
+
+with GameClient(synchronous=True, render_each_step=False, headless=True) as game:
+    initial = game.reset(seed=7)
+    for _ in range(200):
+        result = game.step(Action.RIGHT_FIRE, ticks=5)
+        state = result.snapshot
+        print(result.episode_tick, state.player.score, state.episode_events)
+        if result.terminated:
+            break
+```
+
+Call `reset(seed)` before a repeatable run. A terminal episode stays frozen until
+explicitly reset. Actions hold a complete button state; `IDLE` releases buttons
+and preserves the original movement decay.
+
+### Watch the native game
+
+With a working desktop display and OpenGL:
 
 ```bash
-git submodule add https://github.com/helywin/chromium-bsu-rl.git third_party/chromium-bsu-rl
-# 已经引用本项目的仓库，在克隆后运行：
-git submodule update --init --recursive
+bash scripts/run_gui.sh                         # Play through the game menu
+.venv/bin/python examples/watch_snapshot.py     # Inspect state while you play
+.venv/bin/python examples/watch_steps.py        # Watch a seeded action sequence
+.venv/bin/python examples/watch_enemy_bullets.py
 ```
 
-## 上游与许可
+For occasional rendering use `GameClient(synchronous=True,
+render_each_step=False)` and `game.render()`. This still creates an SDL/GL
+context. A headless client cannot later open a window; create a GUI client for
+playback. [Modes and troubleshooting](docs/installation.md).
 
-基于 [Chromium B.S.U.](https://chromium-bsu.sourceforge.net/) 0.9.16.1发布源码，保留上游Clarified Artistic License、版权声明及音效的MIT/Expat许可。来源摘要见 [UPSTREAM.md](game/UPSTREAM.md)，修改见 [LOCAL_CHANGES.md](game/LOCAL_CHANGES.md)。不对上游代码或资源重新套用其他许可证。
+### Run with Docker
 
-新增脚本与文档许可及第三方边界见 [LICENSE.md](LICENSE.md)。
+From the cloned repository, with a Linux container engine:
 
+```bash
+docker build -t chromium-bsu-rl:local .
+docker run --rm --init --network none chromium-bsu-rl:local
+```
 
-### Shield damage accounting
+The development image contains the source, native runtime and Python venv. Its
+default command runs the headless example as a non-root user. Building requires
+network access; running the example does not. No prebuilt project image is
+required. [More container commands](docs/installation.md#docker).
 
-Snapshots expose cumulative `episode_events.shield_damage`; hello advertises
-`shield_damage: true`. This is the nonnegative shield resource absorbed in
-HeroAircraft::doDamage, capped at the available resource. It excludes passive
-super-shield decay, refill, reset, and terminal cleanup; reset clears the counter.
-It includes collision and other doDamage callers, so it is not bullet-only attribution.
-No physics, damage allocation or RNG behavior is changed. Rebuild the local binary
-with scripts/build_chromium_rl.sh before using consumers requiring this capability.
+## Integrate with another project
 
+Use an editable checkout, a pinned Git submodule, or build a Python wheel.
+The wheel contains the **Python client only**; provide the separately built game
+and assets through `binary=Path(...)` and `data_directory=Path(...)`.
+Installing the Python package does not compile the game.
 
-### Projectile damage attribution
+[Installation and packaging](docs/installation.md#use-from-another-project)
+includes complete commands. Pin a repository commit for reproducibility;
+Python package, wire schema and game behavior versions have separate meanings.
 
-hello advertises `projectile_damage: true`. Cumulative episode events add:
-`projectile_damage` (actual HP removed by player ammunition, excluding overkill),
-`projectile_damage_fraction` (that damage divided by the target's initial HP),
-and `projectile_kills` (projectile transitions from damage <= 0 to damage > 0).
-Counters reset with the episode. Persistent ammunition counts damage each tick.
-They exclude collision, super-bomb and fleet-cleanup damage and do not change physics.
-The existing enemies_destroyed counter remains an all-source diagnostic.
+## Documentation and development
+
+| Guide | English | 简体中文 |
+| --- | --- | --- |
+| Installation, Docker, packaging, troubleshooting | [Read](docs/installation.md) | [阅读](docs/installation.zh-CN.md) |
+| Python API, actions and state semantics | [Read](docs/api.md) | [阅读](docs/api.zh-CN.md) |
+| JSON-lines protocol for other languages | [Read](docs/protocol.md) | [阅读](docs/protocol.zh-CN.md) |
+| Architecture and roadmap | [Read](docs/architecture.md) | [阅读](docs/architecture.zh-CN.md) |
+| Contributing and verification | [Read](CONTRIBUTING.md) | [阅读](CONTRIBUTING.md#简体中文) |
+
+[Documentation index and evidence](docs/README.md) · [Changelog](CHANGELOG.md) ·
+[Report an issue](https://github.com/helywin/chromium-bsu-rl/issues) · [Security](SECURITY.md)
+
+English and Chinese contributions are welcome. CI runs only on tag pushes and separates Python checks,
+native headless tests, and SDL/OpenGL tests under Xvfb. Xvfb exercises the display
+path; it is not manual desktop or native Wayland acceptance. Branch pushes and
+pull requests do not start CI; use the local contribution checks during development.
+
+## Upstream and licensing
+
+Chromium B.S.U. was created by its [upstream authors](game/AUTHORS). The game
+retains its [Clarified Artistic License](game/COPYING), and sound assets retain
+their [MIT/Expat notice](game/data/wav/license.txt). Original additions use the
+Clarified Artistic License unless a file says otherwise; embedded third-party
+notices remain in place. This project does not replace upstream licenses or
+claim upstream endorsement.
+
+[License scope](LICENSE.md) · [Source provenance](game/UPSTREAM.md) ·
+[Local game changes](game/LOCAL_CHANGES.md) · [Original project](https://chromium-bsu.sourceforge.net/)

@@ -1,0 +1,17 @@
+name: Feature request / 功能建议
+description: Describe an integration need or improvement / 描述使用需求与改进
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Use case / 使用场景
+      description: What are you trying to build, and what is missing? / 你在构建什么，目前缺少什么？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议行为
+      description: Include API ideas, compatibility concerns and alternatives if relevant / 可附接口想法、兼容要求和备选方案。
+    validations:
+      required: true

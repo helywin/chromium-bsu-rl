@@ -1,5 +1,22 @@
 # Local changes
 
+This is a dated history, not a current feature list. See [the current API](../docs/api.md).
+本文件按日期保留改动范围，当前功能见[中文 API](../docs/api.zh-CN.md)。
+
+## 2026-09-12 — independent public package
+
+- Add complete English/Chinese user guides, source/wheel packaging, a container build and CI.
+- Expose the existing native powerups and episode events in the public typed Python client.
+- Preserve upstream source and assets; this change does not alter native physics, actions, RNG or protocol fields.
+
+## 2026-09-11 — headless execution and additive instrumentation
+
+- Add true headless synchronous startup without SDL video, GL context, texture/font or audio initialization. Keep the same linked native executable and simulation logic.
+- Replace the synchronous loop's fixed 2 ms delay with request-driven polling.
+- Export stable episode-local powerup IDs and next-update displacement through const traversal.
+- Track cumulative destruction, escape, life loss, pickup and missed-pickup events, then add shield damage and effective projectile damage/fraction/kills.
+- Reset instrumentation with the episode. Keep protocol v1, schema v2 and seeded-reset-v3 gameplay identity; counters do not alter scoring, physics or RNG.
+
 ## 2026-09-07 — split-render-v2 and enemy bullets
 
 - Single-level advanceSimulationTick and renderGameFrame are independent. Background, HUD, electric acceleration and super-shield particles advance in the tick path. Rendering preserves the gameplay RNG cursor using frame-indexed visual sampling; this changes RNG consumption relative to v1 and is explicitly versioned.
@@ -9,7 +26,7 @@
 
 ## 2026-09-07 — drawable fix and initial rendering separation
 
-- Fit the original game aspect ratio into actual SDL drawable pixels before drawing. Slow-window clipping was reported fixed by the learner; no game coordinate or speed change.
+- Fit the original game aspect ratio into actual SDL drawable pixels before drawing. Slow-window clipping was reported fixed by the original tester; no game coordinate or speed change.
 - Extract MainGL core update, hero visibility countdown and enemy retargeting into explicit methods, preserving the original combined-loop order. No render-free switch is exposed yet.
 - Add developer-only fixed-epoch before/after comparison, never loaded by the game launcher. It is not a public seed API.
 - Remaining background, HUD, particle and random-stream dependencies are tracked in docs/render-separation-audit.md; see it for validation boundaries.

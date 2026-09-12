@@ -1,17 +1,9 @@
-"""Read live state while YOU play in the native game window.
+"""Print live snapshots while you play in the native window.
 
-Goal: connect visible game motion to Python's real snapshot fields, not train DQN.
-Prerequisite: build the game and install this package in your virtual environment.
-Run from this checkout: <your-venv>/bin/python examples/watch_snapshot.py
-In the course repo: .venv/bin/python third_party/chromium-bsu-rl/examples/watch_snapshot.py
-
-Enter a game using its menu, move with arrow keys, and compare x/y printed here.
-Observe lives_counter and mode when losing fighters; do not assume 0 means game over.
-The screen keeps running between snapshots (0.5s apart); this is NOT env.step().
-Close the window or press Ctrl+C in this terminal to end. No TODO/API guessing.
-Success: visible movement corresponds to changing world positions; close exits
-without leaving a game process. Failure: send the explicit error, not only 'no motion'.
-No seeds, fixed-step control, rewards, policy learning or speedup are validated here.
+Run after building and installing the package: python examples/watch_snapshot.py
+Enter a game from its menu and move with arrow keys. The real-time loop keeps
+running between reads; sampling every 0.5 seconds does not define a step.
+Close the window or press Ctrl+C to stop the owned process.
 """
 import time
 from chromium_rl import GameClient, ProtocolError

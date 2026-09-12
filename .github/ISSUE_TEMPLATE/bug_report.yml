@@ -1,0 +1,31 @@
+name: Bug report / 问题反馈
+description: Report a reproducible runtime, packaging or documentation problem / 反馈可复现问题
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Commit, OS/architecture, Python, build command, and live / synchronous GUI / headless mode.
+      placeholder: 提供提交、系统与架构、Python 版本、构建命令和运行模式。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / 复现步骤
+      description: Include the smallest script, seed and action/tick sequence that reproduces the issue.
+      placeholder: 最小复现脚本、种子、动作和 tick 序列。
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / 日志
+      description: Paste the error and game-log tail; remove credentials and personal data / 请移除凭据与个人信息。
+      render: text

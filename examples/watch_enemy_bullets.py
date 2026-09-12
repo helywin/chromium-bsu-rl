@@ -1,9 +1,7 @@
 """Display native enemy bullets and print their typed protocol state.
 
-Run from a consuming course checkout:
-  .venv/bin/python third_party/chromium-bsu-rl/examples/watch_enemy_bullets.py
-Or standalone: <venv>/bin/python examples/watch_enemy_bullets.py
-No keyboard injection or training. The player remains idle.
+Run after building and installing: python examples/watch_enemy_bullets.py
+The player remains idle; this is a state inspection example.
 """
 import time
 
@@ -12,6 +10,7 @@ from chromium_rl import Action, GameClient
 
 def main() -> None:
     with GameClient(synchronous=True) as game:
+        game.reset(209)
         if not game.capabilities.enemy_bullets:
             raise RuntimeError("Rebuild the native game for enemy-bullet snapshots")
         print("Enemy bullets: position in world coordinates; velocity is displacement per tick.")

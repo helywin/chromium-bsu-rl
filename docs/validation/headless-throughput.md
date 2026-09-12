@@ -11,11 +11,11 @@ The gameplay implementation ID stays seeded-reset-v3; headless is an explicit ca
 
 ## Reproduction
 
-From consuming workspace `/home/jiang/code/legged_robot_rl`:
+Reproduction commands normalized to the standalone checkout and `.venv`:
 
 ```bash
-third_party/chromium-bsu-rl/scripts/build_chromium_rl.sh
-PYTHONPATH=third_party/chromium-bsu-rl RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s third_party/chromium-bsu-rl/tests -v
+bash scripts/build_chromium_rl.sh
+RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s tests -v
 ```
 
 15 tests passed. `test_headless.py` removes DISPLAY/WAYLAND_DISPLAY and supplies an
@@ -31,13 +31,11 @@ The temporary old binary and build/test logs are local evidence, not committed a
 
 ## Throughput boundary
 
-The consuming DQN project separately optimizes replay storage/logging and supports
-N independent game processes. A 4000-update old single-environment run took9.902s;
-new 1/4/8-environment median times over3 trials were2.337/2.212/2.131s. These are
-combined Python/native improvements, not a claimed isolated native speedup.
-Old/new single-environment final weights matched exactly. Changing N changes sampling
-order and policy-update timing, so N-way policy quality needs separate assessment.
-See consuming experiment `experiments/2026-09-11-chromium-training-throughput/`.
+Training throughput measurements in an external consumer also included replay,
+logging and scheduling changes. They are not isolated native-runtime benchmarks
+and are not published as performance claims for this repository. Current users
+can measure runtime sampling with `scripts/benchmark_render_steps.py`; results
+depend on the platform and whether display rendering is included.
 
 No Xvfb, display server, GPU context, dependency installation or driver changes were
 used in headless tests. The executable still links GUI libraries. This is a tested

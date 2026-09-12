@@ -16,7 +16,7 @@ def mapping(value: object) -> Mapping[str, object]:
 def integer(value: object) -> int:
     if type(value) is not int:
         raise ValueError("Expected integer (not boolean)")
-    return cast(int, value)
+    return value
 
 
 def number(value: object) -> float:
@@ -34,7 +34,7 @@ def number(value: object) -> float:
 def boolean(value: object) -> bool:
     if type(value) is not bool:
         raise ValueError("Expected boolean")
-    return cast(bool, value)
+    return value
 
 
 def text(value: object) -> str:
@@ -68,16 +68,28 @@ class Capabilities:
     render: bool = False
     render_free_steps: bool = False
     enemy_bullets: bool = False
+    seed: bool = False
+    powerups: bool = False
+    episode_events: bool = False
+    shield_damage: bool = False
+    projectile_damage: bool = False
 
     @classmethod
     def parse(cls, value: object) -> "Capabilities":
         d = mapping(value)
         if integer(d["schema_version"]) not in (1, 2):
             raise ValueError("Unsupported snapshot schema")
-        return cls(text(d["implementation"]), text(d["upstream_version"]),
-                   *(boolean(d[k]) for k in ("live_snapshot", "step", "reset", "headless", "deterministic")),
-                   boolean(d.get("render", False)), boolean(d.get("render_free_steps", False)),
-                   boolean(d.get("enemy_bullets", False)))
+        return cls(
+            implementation=text(d["implementation"]), upstream_version=text(d["upstream_version"]),
+            live_snapshot=boolean(d["live_snapshot"]), step=boolean(d["step"]),
+            reset=boolean(d["reset"]), headless=boolean(d["headless"]),
+            deterministic=boolean(d["deterministic"]), render=boolean(d.get("render", False)),
+            render_free_steps=boolean(d.get("render_free_steps", False)),
+            enemy_bullets=boolean(d.get("enemy_bullets", False)), seed=boolean(d.get("seed", False)),
+            powerups=boolean(d.get("powerups", False)), episode_events=boolean(d.get("episode_events", False)),
+            shield_damage=boolean(d.get("shield_damage", False)),
+            projectile_damage=boolean(d.get("projectile_damage", False)),
+        )
 
 
 @dataclass(frozen=True)
@@ -137,6 +149,71 @@ class EnemyBulletState:
 
 
 @dataclass(frozen=True)
+class PowerUpState:
+    """Episode-local pickup identity and raw motion before boundary clamping."""
+
+    id: int
+    type: int
+    position: Vec3
+    power: float
+    next_displacement: Vec2
+
+    @classmethod
+    def parse(cls, value: object) -> "PowerUpState":
+        d = mapping(value)
+        result = cls(integer(d["id"]), integer(d["type"]),
+                     cast(Vec3, vector(d["position"], 3)), number(d["power"]),
+                     cast(Vec2, vector(d["next_displacement"], 2)))
+        if result.id <= 0 or not 0 <= result.type < 6:
+            raise ValueError("Invalid powerup identity/type")
+        return result
+
+
+@dataclass(frozen=True)
+class EpisodeEvents:
+    """Cumulative counters; subtract only within the same episode.
+
+    Optional damage fields are None when an older native build omits them.
+    Missing instrumentation must never be interpreted as a measured zero.
+    """
+
+    enemies_destroyed: int
+    enemies_escaped: int
+    lives_lost: int
+    pickups: int
+    missed_powerups: int
+    pickup_score: float
+    missed_powerup_score: float
+    shield_damage: float | None = None
+    projectile_damage: float | None = None
+    projectile_damage_fraction: float | None = None
+    projectile_kills: int | None = None
+
+    @classmethod
+    def parse(cls, value: object, *, capabilities: Capabilities | None = None) -> "EpisodeEvents":
+        d = mapping(value)
+        counts = tuple(integer(d[k]) for k in (
+            "enemies_destroyed", "enemies_escaped", "lives_lost", "pickups", "missed_powerups"))
+        scores = tuple(number(d[k]) for k in ("pickup_score", "missed_powerup_score"))
+        shield = number(d["shield_damage"]) if "shield_damage" in d else None
+        projectile_keys = ("projectile_damage", "projectile_damage_fraction", "projectile_kills")
+        if any(k in d for k in projectile_keys) and not all(k in d for k in projectile_keys):
+            raise ValueError("Incomplete projectile damage instrumentation")
+        damage = number(d["projectile_damage"]) if "projectile_damage" in d else None
+        fraction = number(d["projectile_damage_fraction"]) if "projectile_damage_fraction" in d else None
+        kills = integer(d["projectile_kills"]) if "projectile_kills" in d else None
+        if capabilities is not None:
+            if capabilities.shield_damage and shield is None:
+                raise ValueError("Native runtime advertised shield_damage but omitted it")
+            if capabilities.projectile_damage and damage is None:
+                raise ValueError("Native runtime advertised projectile_damage but omitted it")
+        if any(v < 0 for v in (*counts, *scores, shield, damage, fraction, kills) if v is not None):
+            raise ValueError("Negative episode event counter")
+        return cls(counts[0], counts[1], counts[2], counts[3], counts[4],
+                   scores[0], scores[1], shield, damage, fraction, kills)
+
+
+@dataclass(frozen=True)
 class Snapshot:
     mode: str
     paused: bool
@@ -147,9 +224,11 @@ class Snapshot:
     enemies: tuple[EnemyState, ...]
     enemy_bullets: tuple[EnemyBulletState, ...] = ()
     rng_cursor: int | None = None
+    powerups: tuple[PowerUpState, ...] | None = None
+    episode_events: EpisodeEvents | None = None
 
     @classmethod
-    def parse(cls, value: object) -> "Snapshot":
+    def parse(cls, value: object, *, capabilities: Capabilities | None = None) -> "Snapshot":
         d = mapping(value)
         schema = integer(d["schema_version"])
         if schema not in (1, 2):
@@ -160,10 +239,21 @@ class Snapshot:
         bullets = tuple(EnemyBulletState.parse(b) for b in values(d["enemy_bullets"])) if schema == 2 else ()
         if len({b.id for b in bullets}) != len(bullets):
             raise ValueError("Duplicate enemy bullet ID")
+        powerups = tuple(PowerUpState.parse(p) for p in values(d["powerups"])) if "powerups" in d else None
+        if powerups is not None and len({p.id for p in powerups}) != len(powerups):
+            raise ValueError("Duplicate powerup ID")
+        events = EpisodeEvents.parse(d["episode_events"], capabilities=capabilities) if "episode_events" in d else None
+        if capabilities is not None:
+            if capabilities.enemy_bullets and schema != 2:
+                raise ValueError("Native runtime advertised enemy_bullets but omitted them")
+            if capabilities.powerups and powerups is None:
+                raise ValueError("Native runtime advertised powerups but omitted them")
+            if (capabilities.episode_events or capabilities.shield_damage or capabilities.projectile_damage) and events is None:
+                raise ValueError("Native runtime advertised episode events but omitted them")
         return cls(mode, boolean(d["paused"]), integer(d["game_frame"]), integer(d["level"]),
                    number(d["speed_adjustment"]), PlayerState.parse(d["player"]),
                    tuple(EnemyState.parse(e) for e in values(d["enemies"])), bullets,
-                   integer(d["rng_cursor"]) if schema == 2 else None)
+                   integer(d["rng_cursor"]) if schema == 2 else None, powerups, events)
 
 
 @dataclass(frozen=True)
@@ -175,9 +265,9 @@ class StepResult:
     terminated: bool
 
     @classmethod
-    def parse(cls, value: object) -> "StepResult":
+    def parse(cls, value: object, *, capabilities: Capabilities | None = None) -> "StepResult":
         d = mapping(value)
-        result = cls(Snapshot.parse(d["snapshot"]), integer(d["actual_ticks"]),
+        result = cls(Snapshot.parse(d["snapshot"], capabilities=capabilities), integer(d["actual_ticks"]),
                      integer(d["episode_tick"]), number(d["simulated_seconds"]),
                      boolean(d["terminated"]))
         if not 1 <= result.actual_ticks <= 50 or result.episode_tick < result.actual_ticks:

@@ -1,10 +1,10 @@
 # Episode event instrumentation validation
 
 Build: `scripts/build_chromium_rl.sh` (existing dependencies, local install only).
-From consuming workspace:
+Reproduction command normalized to the standalone checkout and `.venv`:
 
 ```bash
-PYTHONPATH=third_party/chromium-bsu-rl RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s third_party/chromium-bsu-rl/tests -v
+RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s tests -v
 ```
 
 16 tests passed, including new headless native event test. Seeds1..16, random action

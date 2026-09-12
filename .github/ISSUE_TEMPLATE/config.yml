@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation / 使用文档
+    url: https://github.com/helywin/chromium-bsu-rl/tree/master/docs
+    about: Installation, API and troubleshooting in English and Chinese / 中英文安装、接口和排错指南。

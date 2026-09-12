@@ -1,5 +1,8 @@
 # Python训练接口与加速设计
 
+> 历史设计草案（2026-09-07），下文“待实现”描述当时的阶段，不代表当前能力。
+> 当前架构见 [architecture.zh-CN.md](architecture.zh-CN.md)，接口见 [api.zh-CN.md](api.zh-CN.md)。
+
 状态：单关同步逻辑与绘图已拆分，支持不逐步绘图采样、独立render和敌方子弹快照；9条绘图开关轨迹一致。仍依赖显示服务与GL，真正headless、公开reset/seed、奖励与Gym封装待实现。当前契约见[render-free-stepping.md](render-free-stepping.md)。该项目独立于任何课程仓库。证据见 [源码构建记录](validation/source-build.md)、[快照验证](validation/live-snapshot.md)和[同步step契约](synchronous-step.md)，原快照协议见[protocol.md](protocol.md)。
 
 ## 仓库布局（拟建）

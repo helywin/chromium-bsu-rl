@@ -29,6 +29,6 @@ Environment: Linux x86_64, existing json-c 0.19; no new system library installed
 
 ## Boundaries
 
-These tests establish menu-state reads and cleanup, not full active-game field coverage. Human play versus live coordinates/enemy list is provided as a visible experiment and has not yet been reported by the learner. Raw damage is not health, raw enemy velocity is not universally full movement, and list order is not a stable object ID.
+These tests establish menu-state reads and cleanup, not full active-game field coverage. Human play versus live coordinates/enemy list was not independently verified in this record. Raw damage is not health, raw enemy velocity is not universally full movement, and list order is not a stable object ID.
 
 No artifacts or private desktop images are included. Native request-parser coverage is currently hello/unsupported-command/close plus EOF; future work should extend malformed-request and stress coverage. Next implementation milestone is explicit action and deterministic single-tick advancement.

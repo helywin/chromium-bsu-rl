@@ -6,8 +6,8 @@ project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 for tool in autoreconf autoconf automake aclocal autopoint make pkg-config g++ msgfmt; do
     command -v "$tool" >/dev/null || { echo "Missing build tool: $tool" >&2; exit 1; }
 done
-pkg-config --exists sdl2 SDL2_image gl glu ftgl fontconfig openal freealut json-c || {
-    echo 'Missing development libraries; see README.md.' >&2; exit 1;
+pkg-config --print-errors --exists sdl2 SDL2_image gl glu ftgl fontconfig openal freealut 'json-c >= 0.15' || {
+    echo 'Missing development libraries; see docs/installation.md.' >&2; exit 1;
 }
 jobs=${CHROMIUM_RL_BUILD_JOBS:-4}
 [[ $jobs =~ ^[1-9][0-9]*$ ]] || { echo 'CHROMIUM_RL_BUILD_JOBS must be a positive integer.' >&2; exit 1; }

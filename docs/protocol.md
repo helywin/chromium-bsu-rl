@@ -1,6 +1,8 @@
 # Process protocol v1, snapshot schema v2
 
-Default live mode runs in real time and accepts human GUI controls. Synchronous mode supports `step` and independent `render`; enemy bullet state is exported in both modes. See [render-free stepping and bullet semantics](render-free-stepping.md). Synchronous `reset(seed)` is available. Rewards, enemy aircraft IDs and power-up snapshots remain unimplemented.
+[English](protocol.md) | [简体中文](protocol.zh-CN.md) · [Python API](api.md)
+
+Default live mode runs in real time and accepts human GUI controls. Synchronous mode supports `step`, `reset(seed)` and independent `render` (GUI only), with optional true headless execution. Enemy bullets, powerups and cumulative episode events are exported in all modes. Rewards and enemy aircraft IDs are not implemented.
 
 ## Transport
 
@@ -25,7 +27,7 @@ Commands: `hello`, `snapshot`, `close`; synchronous mode additionally accepts `s
 | `enemies` | Const traversal of EnemyFleet, does not modify the shared currentShip cursor |
 | enemy `type/position/raw_velocity/size/damage` | Raw EnemyAircraft fields. raw_velocity is not guaranteed to describe all special enemy movement |
 
-Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has episode-local spawn IDs and typed fields documented in [the bullet contract](render-free-stepping.md#enemy-bullet-contract). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Collision events and enemy aircraft IDs are later work. Menu observations are introspection only, not transitions suitable for training.
+Enemy aircraft order is not a persistent identity or fixed policy vector. `enemy_bullets` has episode-local spawn IDs and typed fields documented in [the API contract](api.md#state-and-units). `rng_cursor` is diagnostic state, not a policy input. No raw pointers are exposed. Per-collision records and enemy aircraft IDs are not provided. Menu observations are introspection only, not transitions suitable for training.
 
 Snapshots are copied at one complete main-loop boundary on the game thread, with no interleaved update during serialization. While paused or idle in the menu, unchanged fields may compare equal. In active play two requests can observe different frames; taking a snapshot is not a request to advance exactly one frame. `hello` reports step/render/render_free_steps according to synchronous mode and enemy_bullets=true. reset/seed are true in the SDL synchronous runtime. headless reports the selected runtime mode; deterministic remains false and seeded repeatability is scoped below. Snapshot schema2 requires enemy_bullets and rng_cursor; missing fields are errors, not silently interpreted as no threats.
 
@@ -77,8 +79,8 @@ Startup without an explicit reset retains the legacy time-based initialization;
 repeatable runs must call reset first. Synchronous tests use no-audio X11/GL;
 the default mode still requires a display; opt-in headless mode is described below. Multi-level support is not added.
 
-Python standalone client: `GameClient.reset(seed) -> Snapshot`. The independent
-learning project implements its own transport rather than importing this client.
+Python client: `GameClient.reset(seed) -> Snapshot`. Other language clients can
+implement the same JSON-lines protocol without depending on Python.
 See [native reset validation](validation/seeded-reset.md).
 
 ## Additive powerup snapshot fields (2026-09-11)
@@ -139,3 +141,42 @@ step events; do not subtract across resets.
 
 Counts are nonnegative int64, score totals are nonnegative numbers. Existing gameplay
 version and schema2 remain; this is instrumentation, not a scoring/rule modification.
+
+## Damage attribution
+
+`hello.shield_damage=true` requires `episode_events.shield_damage`: nonnegative
+shield resource absorbed in `HeroAircraft::doDamage`, capped at the available
+resource. It excludes passive super-shield decay, refill, reset and cleanup.
+All damage callers contribute; it is not bullet-only attribution.
+
+`hello.projectile_damage=true` requires three cumulative fields:
+
+- `projectile_damage`: effective enemy HP removed by player ammunition, excluding overkill.
+- `projectile_damage_fraction`: effective damage divided by each target's initial HP, accumulated.
+- `projectile_kills`: projectile transitions from damage <= 0 to damage > 0.
+
+These exclude collision, super-bomb and fleet-cleanup damage. Persistent ammunition
+can contribute each tick. Reset clears all counters; physics and RNG do not read them.
+
+## Request examples
+
+The action integers follow the [18-action table](api.md#actions-and-time).
+
+```json
+{"protocol_version":1,"request_id":1,"command":"hello"}
+{"protocol_version":1,"request_id":2,"command":"reset","seed":7}
+{"protocol_version":1,"request_id":3,"command":"step","action":13,"ticks":5}
+{"protocol_version":1,"request_id":4,"command":"close"}
+```
+
+Send one request and consume its response before sending the next. A successful
+step result contains `snapshot`, `actual_ticks`, cumulative `episode_tick`,
+`simulated_seconds` and `terminated`. On terminal, further steps return
+`episode_ended` until reset. Errors include `invalid_json`, `invalid_request`,
+`invalid_seed`, `invalid_action`, `unsupported_command`, `request_too_large`.
+Malformed/unidentified requests may carry a null response ID and cause a strict
+client to close. Do not retry a step after an ambiguous transport failure.
+
+The typed client exposes `PowerUpState` and `EpisodeEvents`. Missing optional
+extensions from an older build become `None`; advertised capabilities require
+their fields. See [compatibility](api.md#compatibility-and-errors).

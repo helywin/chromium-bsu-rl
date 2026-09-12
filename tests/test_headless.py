@@ -2,7 +2,7 @@
 import os
 import unittest
 from unittest.mock import patch
-from chromium_rl import GameClient, Action
+from chromium_rl import GameClient, Action, Snapshot
 from chromium_rl.client import RemoteError
 
 
@@ -17,6 +17,28 @@ def trace(game: GameClient, seed: int) -> list:
 
 
 class HeadlessTests(unittest.TestCase):
+    def test_public_powerups_and_events_match_native_data(self) -> None:
+        with GameClient(synchronous=True, render_each_step=False, headless=True) as game:
+            for field in ('seed', 'powerups', 'episode_events', 'shield_damage', 'projectile_damage'):
+                self.assertTrue(getattr(game.capabilities, field))
+            initial = game.reset(209)
+            self.assertEqual(initial.powerups, ())
+            self.assertIsNotNone(initial.episode_events)
+            seen = False
+            for _ in range(220):
+                state = game.step(Action.DOWN_RIGHT_FIRE, ticks=5).snapshot
+                seen |= bool(state.powerups)
+                self.assertIsNotNone(state.episode_events)
+                assert state.episode_events is not None
+                self.assertIsNotNone(state.episode_events.projectile_damage)
+                wire = game._transport
+                assert wire is not None
+                self.assertEqual(state, Snapshot.parse(wire.call('snapshot'), capabilities=game.capabilities))
+                if state.mode != 'game':
+                    break
+            self.assertTrue(seen, 'Need a real native powerup in the public API')
+            self.assertEqual(initial, game.reset(209))
+
     def test_no_video_backend_and_reset(self) -> None:
         with patch.dict(os.environ, {'CHROMIUM_BSU_RL_HEADLESS':'1'}):
             os.environ.pop('DISPLAY', None)

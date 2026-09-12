@@ -1,5 +1,9 @@
 # Render-free stepping and enemy bullets (split-render-v2)
 
+> Historical v2 design record. The current runtime also supports seeded reset
+> and true headless mode. Use the [current API](api.md) and [installation guide](installation.md).
+> 历史 v2 设计记录；当前能力以 [中文 API](api.zh-CN.md) 为准。
+
 The synchronous single-level path now separates complete state updates from drawing. This is **not true headless**: native startup still creates an SDL window, GL context and textures and therefore needs a display service. Human-mode menus and terminal transitions are not a render-free full-game environment.
 
 ## Usage

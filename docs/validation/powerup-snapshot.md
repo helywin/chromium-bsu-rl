@@ -3,11 +3,10 @@
 Built with `scripts/build_chromium_rl.sh` using the existing toolchain, no system install.
 The schema2 extension is read-only; seeded-reset-v3 physics and score rules are unchanged.
 
-From the consuming workspace (`/home/jiang/code/legged_robot_rl`):
+Reproduction command normalized to the standalone checkout and `.venv`:
 
 ```bash
-PYTHONPATH=third_party/chromium-bsu-rl RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s third_party/chromium-bsu-rl/tests -v
-RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s exercises/chromium_dqn/tests -v
+RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s tests -v
 ```
 
 Native repository regression: 13 tests passed, including the new wire integration test.

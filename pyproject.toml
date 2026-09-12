@@ -1,18 +1,47 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "chromium-bsu-rl"
-version = "0.1.0"
-description = "Typed live snapshot client for Chromium B.S.U. for RL (not yet a training environment)"
+version = "0.2.0"
+description = "Typed Python control for the Chromium B.S.U. game runtime: seeded steps, headless execution and snapshots"
 requires-python = ">=3.11"
 readme = "README.md"
-license = {file = "game/COPYING"}
+license = "ClArtistic"
+license-files = ["LICENSE.md", "game/COPYING", "game/AUTHORS", "game/data/wav/license.txt"]
 dependencies = []
+keywords = ["chromium-bsu", "reinforcement-learning", "simulation", "headless", "game"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: C++",
+    "Topic :: Games/Entertainment :: Arcade",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/helywin/chromium-bsu-rl"
+Documentation = "https://github.com/helywin/chromium-bsu-rl/tree/master/docs"
+Repository = "https://github.com/helywin/chromium-bsu-rl.git"
+Issues = "https://github.com/helywin/chromium-bsu-rl/issues"
+Changelog = "https://github.com/helywin/chromium-bsu-rl/blob/master/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "twine>=6", "mypy>=1.14", "setuptools>=77", "wheel"]
 
 [tool.setuptools.packages.find]
 include = ["chromium_rl*"]
 
 [tool.setuptools.package-data]
 chromium_rl = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["chromium_rl", "examples"]

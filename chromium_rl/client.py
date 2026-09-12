@@ -28,7 +28,7 @@ class RemoteError(RuntimeError):
 class _JsonProcess:
     """Bounded JSON-lines transport; stderr goes to a file, never an undrained pipe."""
 
-    def __init__(self, command: Sequence[str], env: Mapping[str, str], log: Path, timeout: float):
+    def __init__(self, command: Sequence[str], env: Mapping[str, str], log: Path, timeout: float) -> None:
         self.timeout = timeout
         self._request_id = 0
         self._pending = bytearray()
@@ -105,7 +105,7 @@ class _JsonProcess:
 
 
 class GameClient:
-    """Open a live GUI, or opt into one synchronous first-level episode.
+    """Own a live GUI or a synchronous first-level runtime (optionally headless).
 
     Defaults locate an editable source checkout's local build. For an installed
     wheel pass binary and data_directory explicitly; game assets are not in the wheel.
@@ -114,7 +114,9 @@ class GameClient:
 
     def __init__(self, *, binary: Path | None = None, data_directory: Path | None = None,
                  video_driver: str | None = None, timeout: float = 10.0, debug: bool = False,
-                 synchronous: bool = False, render_each_step: bool = True, headless: bool = False):
+                 synchronous: bool = False, render_each_step: bool = True, headless: bool = False) -> None:
+        if os.name != "posix":
+            raise OSError("GameClient requires Linux/POSIX subprocess pipes. On Windows use WSL2 or Docker; see docs/installation.md.")
         if type(headless) is not bool or (headless and (not synchronous or render_each_step)):
             raise ValueError("headless=True requires synchronous=True and render_each_step=False")
         if type(synchronous) is not bool:
@@ -168,7 +170,7 @@ class GameClient:
         if self._transport is None:
             raise ProtocolError("Game client is closed")
         try:
-            return Snapshot.parse(self._transport.call("snapshot"))
+            return Snapshot.parse(self._transport.call("snapshot"), capabilities=self.capabilities)
         except (ValueError, KeyError) as exc:
             self.close()
             raise ProtocolError(f"Invalid snapshot: {exc}") from exc
@@ -180,7 +182,7 @@ class GameClient:
         if not self.capabilities.render:
             raise RemoteError("render requires a synchronous split-render native build")
         try:
-            return Snapshot.parse(self._transport.call("render"))
+            return Snapshot.parse(self._transport.call("render"), capabilities=self.capabilities)
         except (ValueError, KeyError) as exc:
             self.close()
             raise ProtocolError(f"Invalid render response: {exc}") from exc
@@ -189,7 +191,8 @@ class GameClient:
         """Hold an action for 1..50 full ticks; stop early at single-level end.
 
         IDLE releases buttons; upstream keyboard accumulation decays, not resets.
-        No seed/reset/reward/headless support yet. Closing and reopening starts anew.
+        Call reset(seed) for repeatable initialization; reward is caller-defined.
+        A terminal episode stays frozen until an explicit reset.
         """
         if not isinstance(action, Action):
             raise ValueError("Use an Action enum member, e.g. Action.RIGHT")
@@ -200,7 +203,8 @@ class GameClient:
         if not self.capabilities.step:
             raise RemoteError("step requires GameClient(synchronous=True)")
         try:
-            result = StepResult.parse(self._transport.call("step", action=int(action), ticks=ticks))
+            result = StepResult.parse(self._transport.call("step", action=int(action), ticks=ticks),
+                                      capabilities=self.capabilities)
             if result.actual_ticks > ticks or (result.actual_ticks < ticks and not result.terminated):
                 raise ValueError("Returned tick count does not match request")
             return result
@@ -220,7 +224,7 @@ class GameClient:
         if not self.capabilities.reset:
             raise RemoteError("This native runtime does not support synchronous reset")
         try:
-            return Snapshot.parse(self._transport.call("reset", seed=seed))
+            return Snapshot.parse(self._transport.call("reset", seed=seed), capabilities=self.capabilities)
         except (ValueError, KeyError) as exc:
             self.close()
             raise ProtocolError(f"Invalid reset snapshot: {exc}") from exc

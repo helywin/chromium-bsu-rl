@@ -3,12 +3,12 @@
 Base source HEAD: `23a1a36ee286c27afea617e375f140bec10900c2` plus the uncommitted seeded-reset-v3 changes. No commit/push performed.
 Rebuilt binary SHA256: `8b981d0ca665f4ccd13115490bc5749e06d62d1294b5121afe111099f9e20bfd`.
 
-Commands from the standalone runtime repository (consuming virtualenv used):
+Reproduction commands normalized to the standalone checkout and `.venv`; the original run used a consumer venv:
 
 ```bash
 bash scripts/build_chromium_rl.sh > build/seeded-reset-build.log 2>&1
-RUN_CHROMIUM_GUI_TESTS=1 /home/jiang/code/legged_robot_rl/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v > build/seeded-reset-tests.log 2>&1
-/home/jiang/code/legged_robot_rl/.venv/bin/python scripts/check_reset_resources.py > build/seeded-reset-resources.json
+RUN_CHROMIUM_GUI_TESTS=1 .venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v > build/seeded-reset-tests.log 2>&1
+.venv/bin/python scripts/check_reset_resources.py > build/seeded-reset-resources.json
 ```
 
 Build passed. Final suite: 12 tests in 5.493 seconds, all passed, no skips;

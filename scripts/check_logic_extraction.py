@@ -1,4 +1,4 @@
-"""Compare native snapshots before/after refactoring, not a learner exercise.
+"""Compare native snapshots before/after refactoring.
 
 Linux only. Build tests/fixed_epoch.c as a shared library, then:
 <venv>/bin/python scripts/check_logic_extraction.py BEFORE_BINARY AFTER_BINARY LIBRARY
